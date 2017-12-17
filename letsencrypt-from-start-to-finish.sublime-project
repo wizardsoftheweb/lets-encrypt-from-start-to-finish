@@ -1,0 +1,40 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+    "build_systems": [
+        // {
+        //     "selector": "source.python",
+        //     "name": "0 pytest: all",
+        //     "working_dir": "${project_path}",
+        //     "cmd": ["pytest", "-s"],
+        //     "windows": {
+        //         "cmd": ["bash", "-c", "pytest -s"]
+        //     },
+        //     "target": "ansi_color_build",
+        //     "syntax": "Packages/ANSIescape/ANSI.tmLanguage"
+        // },
+        // {
+        //     "file_patterns": [
+        //         "test_*.py"
+        //     ],
+        //     "name": "0_1 pytest: single file",
+        //     "working_dir": "${project_path}/tests",
+        //     "cmd": ["pytest", "-s", "--reports=n", "test_${file_name/test_//}"],
+        //     "windows": {
+        //         "cmd": ["bash", "-c", "pytest -s test_${file_name/test_//}"]
+        //     },
+        //     "target": "ansi_color_build",
+        //     "syntax": "Packages/ANSIescape/ANSI.tmLanguage"
+        // },
+        {
+            "selector": "source.python",
+            "name": "1 python: run",
+            "working_dir": "${project_path}",
+            "cmd": ["python", "-u", "$file"]
+        },
+    ]
+}
