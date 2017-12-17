@@ -151,7 +151,7 @@ I have not tested this.
 
 ### Generic SSL Config
 
-I'll be using [the Qualsys suggested configuration](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices) to set this up. Most of this stuff is explained elsewhere on the internet. I wanted to grok the whole process, so I wrote it up.
+I'll be using [the Qualys suggested configuration](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices) to set this up. Most of this stuff is explained elsewhere on the internet. I wanted to grok the whole process, so I wrote it up.
 
 I've included Nginx and Apache config because I support both at work, but I've only tested the Nginx config. Apache confuses me.
 
@@ -192,7 +192,7 @@ $ $(which apachectl && echo apachectl || echo httpd) -M | grep -E "rewrite|ssl|s
 
 #### Specify Allowed TLS Versions
 
-Qualsys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols).
+Qualys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols).
 
 ###### Nginx
 
@@ -254,11 +254,11 @@ DHE-RSA-AES128-GCM-SHA256
 DHE-RSA-AES128-SHA256
 DHE-RSA-AES128-SHA
 ```
-That's not the order Qualsys uses, and I've yet to figure out a good way to maintain the original order. However, it does show you what you can use.
+That's not the order Qualys uses, and I've yet to figure out a good way to maintain the original order. However, it does show you what you can use.
 
 #### Specify ECDHE Curve
 
-Qualsys suggests using a [specific elliptic curve for ECDHE](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#26-use-strong-key-exchange).
+Qualys suggests using a [specific elliptic curve for ECDHE](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#26-use-strong-key-exchange).
 
 ###### Nginx
 
@@ -666,7 +666,7 @@ $ openssl s_client 				\
 	-servername example.com 	\
 	-tls1_2						\
 	-status
-	
+
 CONNECTED(00000003)
 depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
 verify return:1
