@@ -9,7 +9,7 @@ from glob import glob
 from jinja2 import Environment, FileSystemLoader
 from num2words import num2words
 
-# from wotw_highlighter import Block
+from wotw_highlighter import Block
 
 POSTS_DIR = path.dirname(__file__)
 ROOT_DIR = path.dirname(POSTS_DIR)
@@ -18,6 +18,12 @@ TEMPLATE_DIR = path.join(POSTS_DIR, 'templates')
 
 rmtree(BUILD_DIR, ignore_errors=True)
 mkdir(BUILD_DIR)
+
+
+def highlight_block(content, **kwargs):
+    """Highlights a block via wotw-highlighter"""
+    blob = Block(content, inline_css=True, **kwargs)
+    return blob.highlighted_blob
 
 
 def run_bash(command_as_tuple):
@@ -123,6 +129,7 @@ def compile_all_posts():
         loader=FileSystemLoader(TEMPLATE_DIR)
     )
 
+    jinja_env.globals['highlight_block'] = highlight_block
     jinja_env.globals['include_with_default'] = include_with_default
     jinja_env.globals['num2words'] = num2words
     jinja_env.globals['run_bash'] = run_bash
