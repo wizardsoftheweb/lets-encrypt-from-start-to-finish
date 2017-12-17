@@ -74,7 +74,7 @@ def render_single_post(post_basename, jinja_to_use):
     template = jinja_to_use.get_template(post_basename)
     pre_toc = template.render(
         post_number=int(post_basename.split('-')[1]),
-        current_tag=path.splitext(post_basename)[0]
+        current_tag=path.splitext(post_basename)[0].replace('.md', '')
     )
     return pre_toc.strip().encode('utf-8')
 
