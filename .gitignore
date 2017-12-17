@@ -3,7 +3,7 @@
 # Editors
 .idea
 *.sublime-*
-!securing.sublime-project
+!letsencrypt*.sublime-project
 # Generated folders
 .vagrant
 # Personal working files (you might not need these)
