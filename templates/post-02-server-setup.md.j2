@@ -37,5 +37,16 @@ Let's Encrypt works by creating challenges on the server and verifying them thro
 
 I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV.
 
+{{ highlight_block("""\
+$ sudo groupadd letsencrypt
+$ sudo mkdir -p /srv/www/letsencrypt/.well-known/acme-challenge
+$ sudo chown -R :letsencrypt /srv/www/letsencrypt
+$ sudo chmod g+rwx /srv/www/letsencrypt
+""",
+explicit_lexer_name = 'BashLexer',
+no_header = True
+) }}
+
+
 
 {% endblock %}
