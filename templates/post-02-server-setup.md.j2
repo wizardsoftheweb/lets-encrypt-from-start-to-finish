@@ -47,6 +47,38 @@ explicit_lexer_name = 'BashLexer',
 no_header = True
 ) }}
 
+We'll also want to save a snippet dropping the webserver here.
 
+#### Nginx
+
+This is just a simple location block.
+
+{{ highlight_block("""\
+location ^~ /.well-known/acme-challenge/ {
+    default_type \"text/plain\";
+    root /srv/www/letsencrypt;
+}
+""",
+explicit_lexer_name = 'NginxConfLexer',
+title = '/etc/nginx/common/letsencrypt.conf'
+) }}
+
+I've got at least three servers running a variant of this right now.
+
+#### Apache
+
+From [the Let's Encrypt forums](https://community.letsencrypt.org/t/apache-multidomain-webroot/10663/2),
+
+```
+Alias /.well-known/acme-challenge/ /srv/www/letsencrypt/.well-known/acme-challenge/
+<Directory "/srv/www/letsencrypt/.well-known/acme-challenge/">
+    Options None
+    AllowOverride None
+    ForceType text/plain
+    RedirectMatch 404 "^(?!/\.well-known/acme-challenge/[\w-]{43}$)"
+</Directory>
+```
+
+I have not tested this.
 
 {% endblock %}
