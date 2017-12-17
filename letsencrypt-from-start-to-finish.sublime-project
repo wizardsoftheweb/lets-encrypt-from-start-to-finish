@@ -36,5 +36,11 @@
             "working_dir": "${project_path}",
             "cmd": ["python", "-u", "$file"]
         },
+        {
+            "selector": "source.markdown",
+            "name": "MD to HTML",
+            "working_dir": "${project_path}",
+            "cmd": ["markdown_py", "$file"]
+        },
     ]
 }
