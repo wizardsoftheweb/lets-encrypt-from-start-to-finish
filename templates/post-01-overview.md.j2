@@ -36,4 +36,12 @@ HSTS can make sites a bit more complicated. It's recommended [to cover subdomain
 
 At its core, HSTS is intended to snag some low-hanging fruit. By enforcing a site-wide HTTPS policy, shady third-party code can't hijack content (sort of). It's also much harder to execute a [man-in-the-middle attack](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) of common varieties against a site with HSTS declared. More importantly, it forces users to switch to secure traffic (which probably could have been done years ago if certs weren't such a racket), all without making their eyes glaze over trying to figure out how to be safe. It just works.
 
+## Let's Encrypt
+
+From [its homepage](https://letsencrypt.org/),
+
+> Let’s Encrypt is a free, automated, and open Certificate Authority.
+
+No one should have to pay for secure communication. I don't want to say much more than that, because I've got some pretty strong opinions about predatory shared hosting providers and the pervasive desire to pull the wool over everyone's eyes that is central to the commercial SSL market. And I've said too much.
+
 {% endblock %}
