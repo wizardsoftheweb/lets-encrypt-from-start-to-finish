@@ -38,16 +38,15 @@ Let's Encrypt works by creating challenges on the server and verifying them thro
 
 I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV.
 
-{{ highlight_block("""\
+{{
+    shell_session("""\
 $ sudo groupadd letsencrypt
 $ sudo mkdir -p /srv/www/letsencrypt/.well-known/acme-challenge
 $ sudo chown -R :letsencrypt /srv/www/letsencrypt
 $ sudo chmod g+rwx /srv/www/letsencrypt
-""",
-linenos = False,
-explicit_lexer_name = 'BashSessionLexer',
-no_header = True
-) }}
+"""
+    )
+}}
 
 We'll also want to save a snippet dropping the webserver here.
 
@@ -55,15 +54,17 @@ We'll also want to save a snippet dropping the webserver here.
 
 This is just a simple location block.
 
-{{ highlight_block("""\
+{{
+    highlight_block("""\
 location ^~ /.well-known/acme-challenge/ {
     default_type \"text/plain\";
     root /srv/www/letsencrypt;
 }
 """,
-explicit_lexer_name = 'NginxConfLexer',
-title = '/etc/nginx/common/letsencrypt.conf'
-) }}
+        explicit_lexer_name = 'NginxConfLexer',
+        title = '/etc/nginx/common/letsencrypt.conf'
+    )
+}}
 
 I've got at least three servers running a variant of this right now.
 
@@ -71,7 +72,8 @@ I've got at least three servers running a variant of this right now.
 
 From [the Let's Encrypt forums](https://community.letsencrypt.org/t/apache-multidomain-webroot/10663/2),
 
-{{ highlight_block("""\
+{{
+    highlight_block("""\
 Alias /.well-known/acme-challenge/ /srv/www/letsencrypt/.well-known/acme-challenge/
 <Directory \"/srv/www/letsencrypt/.well-known/acme-challenge/\">
     Options None
@@ -80,9 +82,10 @@ Alias /.well-known/acme-challenge/ /srv/www/letsencrypt/.well-known/acme-challen
     RedirectMatch 404 \"^(?!/\.well-known/acme-challenge/[\w-]{43}$)\"
 </Directory>
 """,
-explicit_lexer_name = 'ApacheConfLexer',
-title = '/etc/httpd/common/letsencrypt.conf'
-) }}
+        explicit_lexer_name = 'ApacheConfLexer',
+        title = '/etc/httpd/common/letsencrypt.conf'
+    )
+}}
 
 I have not tested this.
 
@@ -90,7 +93,40 @@ I have not tested this.
 
 I'll be using [the Qualys suggested configuration](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices) to set this up. Most of this stuff is explained elsewhere on the internet. I wanted to grok the whole process, so I wrote it up.
 
+#### Location
 
+This creates a single file to hold the common config.
+
+###### Nginx
+
+```bash
+$ sudo touch /etc/nginx/common/ssl.conf
+```
+
+###### Apache
+
+```bash
+$ sudo touch /etc/httpd/common/ssl.conf
+```
+
+You'll also need to ensure you've got the right modules installed and running.
+
+```bash
+$ which a2enmod && echo "apache2" || echo "httpd"
+```
+
+* If you're running `httpd`, edit enable them via `/etc/httpd/conf.modules.d/00-base.conf`.
+* If you're running `apache2`, enable them via `a2enmod`.
+
+You'll need these modules:
+
+* `mod_rewrite`
+* `mod_ssl`
+* `mod_socache_shmcb` for any caching (sessions, stapling)
+
+```bash
+$ $(which apachectl && echo apachectl || echo httpd) -M | grep -E "rewrite|ssl|socache"
+```
 
 
 {% endblock %}
