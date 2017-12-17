@@ -15,18 +15,27 @@ I've been shuffling around copypasta Let's Encrypt config since, I think, the mi
 * [Qualys SSL Labs](https://www.ssllabs.com/) is the SSL gold standard. If you don't have a good Qualys rating, you don't have a good config.
 * Mozilla provides [a great generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/) that's probably responsible for a fair chunk of the articles out there now.
 
-### Certbot
+## `certbot`
 
 You can follow distro-specific instructions [via the official docs](https://certbot.eff.org/docs/install.html) for [almost everything](https://certbot.eff.org/docs/install.html#operating-system-packages). [The generic `wget` method](https://certbot.eff.org/docs/install.html#certbot-auto) usually provides the most current version; however, it's usually a better idea to wait for an official package.
 
-```bash
+{{ highlight_block("""\
 $ wget https://dl.eff.org/certbot-auto
 $ wget -N https://dl.eff.org/certbot-auto.asc
 $ gpg2 --recv-key A2CFB51FA275A7286234E7B24D17C995CD9775F2
 $ gpg2 --trusted-key 4D17C995CD9775F2 --verify certbot-auto.asc certbot-auto
 $ chmod a+x ./certbot-auto
-$ sudo mv ./certbot-auto /usr/bin/certbot
-```
+$ sudo mv ./certbot-auto /usr/bin/certbot-auto
+""",
+explicit_lexer_name = 'BashLexer',
+no_header = True
+) }}
+
+## Common Let's Encrypt Elements
+
+Let's Encrypt works by creating challenges on the server and verifying them through an external request. To simplify things, it's a good idea to create a centralized location for everything. With one or two sites, it's not a huge deal; it's very nice the more sites your server supports.
+
+I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV.
 
 
 {% endblock %}
