@@ -27,7 +27,8 @@ $ gpg2 --trusted-key 4D17C995CD9775F2 --verify certbot-auto.asc certbot-auto
 $ chmod a+x ./certbot-auto
 $ sudo mv ./certbot-auto /usr/bin/certbot-auto
 """,
-explicit_lexer_name = 'BashLexer',
+linenos = False,
+explicit_lexer_name = 'BashSessionLexer',
 no_header = True
 ) }}
 
@@ -43,13 +44,14 @@ $ sudo mkdir -p /srv/www/letsencrypt/.well-known/acme-challenge
 $ sudo chown -R :letsencrypt /srv/www/letsencrypt
 $ sudo chmod g+rwx /srv/www/letsencrypt
 """,
-explicit_lexer_name = 'BashLexer',
+linenos = False,
+explicit_lexer_name = 'BashSessionLexer',
 no_header = True
 ) }}
 
 We'll also want to save a snippet dropping the webserver here.
 
-#### Nginx
+### Nginx
 
 This is just a simple location block.
 
@@ -65,20 +67,30 @@ title = '/etc/nginx/common/letsencrypt.conf'
 
 I've got at least three servers running a variant of this right now.
 
-#### Apache
+### Apache
 
 From [the Let's Encrypt forums](https://community.letsencrypt.org/t/apache-multidomain-webroot/10663/2),
 
-```
+{{ highlight_block("""\
 Alias /.well-known/acme-challenge/ /srv/www/letsencrypt/.well-known/acme-challenge/
-<Directory "/srv/www/letsencrypt/.well-known/acme-challenge/">
+<Directory \"/srv/www/letsencrypt/.well-known/acme-challenge/\">
     Options None
     AllowOverride None
     ForceType text/plain
-    RedirectMatch 404 "^(?!/\.well-known/acme-challenge/[\w-]{43}$)"
+    RedirectMatch 404 \"^(?!/\.well-known/acme-challenge/[\w-]{43}$)\"
 </Directory>
-```
+""",
+explicit_lexer_name = 'ApacheConfLexer',
+title = '/etc/httpd/common/letsencrypt.conf'
+) }}
 
 I have not tested this.
+
+## Generic SSL Config
+
+I'll be using [the Qualys suggested configuration](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices) to set this up. Most of this stuff is explained elsewhere on the internet. I wanted to grok the whole process, so I wrote it up.
+
+
+
 
 {% endblock %}
