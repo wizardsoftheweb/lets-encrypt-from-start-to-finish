@@ -409,4 +409,49 @@ SSLHonorCipherOrder on
     )
 }}
 
+## OCSP Stapling
+
+[OCSP Stapling](https://en.wikipedia.org/wiki/OCSP_stapling) makes things a little bit simpler for Let's Encrypt. To verify a cert's veracity, clients historically had to send a request to the CA, negotiate that, and then, knowing the cert was valid, hit the intended address. OCSP stapling allows your server to periodically timestamp its validity through the magic of digital signatures.
+
+### Nginx
+
+This config requires [also setting `ssl_trusted_certificate`](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_stapling_verify). This will be handled later, once we actually request a cert.
+
+{{
+    highlight_block("""\
+ssl_stapling on;
+ssl_stapling_verify on;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+It's fairly common to see a `resolver` defined as well, and equally common to see it defined as Google.
+
+{{
+    highlight_block("""\
+resolver 8.8.8.8 8.8.4.4;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+I'm not a huge fan of this because it routes everything to Google. If left out, the resolver defaults to your DNS. Theoretically, my DNS already knows a user is checking me out. Google doesn't need to be involved for the same reasons [OCSP stapling was created](https://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol#Privacy_concerns).
+
+### Apache
+
+Apache doesn't [make it easy](https://httpd.apache.org/docs/trunk/ssl/ssl_howto.html#ocspstapling). Here's [a Stack Exchange thread](https://unix.stackexchange.com/a/394074) that seems to cover the important stuff. This is the first of many times [the new Apache cache](https://httpd.apache.org/docs/2.4/mod/mod_socache_shmcb.html) will pop up, and, every single time, it requires manual setup.
+
+{{
+    highlight_block("""\
+SSLUseStapling On
+SSLStaplingCache "shmcb:ssl_stapling(32768)"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
 {% endblock %}
