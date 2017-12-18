@@ -311,7 +311,88 @@ SSLOpenSSLConfCmd Curves P-256
     )
 }}
 
+## Generate Diffie-Hellman Group
 
+Vanilla OpenSSL is susceptible to [Logjam](https://weakdh.org/) (among other things), so you'll want to create a new Diffie-Hellman group. Qualys [mentions this as well](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#26-use-strong-key-exchange); basically, don't use defaults.
+
+
+### Nginx
+
+To generate,
+
+{{
+    shell_session("""\
+$ sudo mkdir -p /etc/nginx/ssl
+$ sudo openssl dhparam -out /etc/nginx/ssl/dhparams.pem 2048
+Generating DH parameters, 2048 bit long safe prime, generator 2
+This is going to take a long time
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄░░░░░░░░░
+░░░░░░░░▄▀░░░░░░░░░░░░▄░░░░░░░▀▄░░░░░░░
+░░░░░░░░█░░▄░░░░▄░░░░░░░░░░░░░░█░░░░░░░
+░░░░░░░░█░░░░░░░░░░░░▄█▄▄░░▄░░░█░▄▄▄░░░
+░▄▄▄▄▄░░█░░░░░░▀░░░░▀█░░▀▄░░░░░█▀▀░██░░
+░██▄▀██▄█░░░▄░░░░░░░██░░░░▀▀▀▀▀░░░░██░░
+░░▀██▄▀██░░░░░░░░▀░██▀░░░░░░░░░░░░░▀██░
+░░░░▀████░▀░░░░▄░░░██░░░▄█░░░░▄░▄█░░██░
+░░░░░░░▀█░░░░▄░░░░░██░░░░▄░░░▄░░▄░░░██░
+░░░░░░░▄█▄░░░░░░░░░░░▀▄░░▀▀▀▀▀▀▀▀░░▄▀░░
+░░░░░░█▀▀█████████▀▀▀▀████████████▀░░░░
+░░░░░░████▀░░███▀░░░░░░▀███░░▀██▀░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+"""
+    )
+}}
+
+To use,
+
+{{
+    highlight_block("""\
+ssl_dhparam /etc/nginx/ssl/dhparams.pem;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+To generate,
+
+{{
+    shell_session("""\
+$ sudo mkdir -p /etc/httpd/ssl
+$ sudo openssl dhparam -out /etc/httpd/ssl/dhparams.pem 2048
+Generating DH parameters, 2048 bit long safe prime, generator 2
+This is going to take a long time
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄░░░░░░░░░
+░░░░░░░░▄▀░░░░░░░░░░░░▄░░░░░░░▀▄░░░░░░░
+░░░░░░░░█░░▄░░░░▄░░░░░░░░░░░░░░█░░░░░░░
+░░░░░░░░█░░░░░░░░░░░░▄█▄▄░░▄░░░█░▄▄▄░░░
+░▄▄▄▄▄░░█░░░░░░▀░░░░▀█░░▀▄░░░░░█▀▀░██░░
+░██▄▀██▄█░░░▄░░░░░░░██░░░░▀▀▀▀▀░░░░██░░
+░░▀██▄▀██░░░░░░░░▀░██▀░░░░░░░░░░░░░▀██░
+░░░░▀████░▀░░░░▄░░░██░░░▄█░░░░▄░▄█░░██░
+░░░░░░░▀█░░░░▄░░░░░██░░░░▄░░░▄░░▄░░░██░
+░░░░░░░▄█▄░░░░░░░░░░░▀▄░░▀▀▀▀▀▀▀▀░░▄▀░░
+░░░░░░█▀▀█████████▀▀▀▀████████████▀░░░░
+░░░░░░████▀░░███▀░░░░░░▀███░░▀██▀░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+"""
+    )
+}}
+
+To use,
+
+{{
+    highlight_block("""\
+SSLOpenSSLConfCmd DHParameter \"/etc/httpd/ssl/dhparams.pem\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
 
 
 {% endblock %}
