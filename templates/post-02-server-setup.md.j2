@@ -99,23 +99,40 @@ This creates a single file to hold the common config.
 
 ###### Nginx
 
-```bash
+1. I don't like common configuration cluttering up the normal directories.
+2. Basically everyone you ask will suggest a different directory for common config.
+3. I like `/etc/nginx/common`.
+
+{{
+    shell_session("""\
 $ sudo touch /etc/nginx/common/ssl.conf
-```
+"""
+    )
+}}
 
 ###### Apache
 
-```bash
+So this probably won't work without some TLC. Apache differentiates global vs scoped config, and some of the things I mention only work in one or the other. However, I'm going to pretend like it will work without issue and hope no one notices.
+
+{{
+    shell_session("""\
 $ sudo touch /etc/httpd/common/ssl.conf
-```
+"""
+    )
+}}
 
-You'll also need to ensure you've got the right modules installed and running.
+You'll also need to ensure you've got the right modules installed and running. Depending [on your server's distro](https://askubuntu.com/a/600902) and the version of Apache you're running, installing and enabling modules is done differently.
 
-```bash
-$ which a2enmod && echo "apache2" || echo "httpd"
-```
+{{
+    shell_session("""\
+$ which a2enmod && echo \"apache2\" || echo \"httpd\"
+RHEL is usually httpd
+Debian is usually apache2
+"""
+    )
+}}
 
-* If you're running `httpd`, edit enable them via `/etc/httpd/conf.modules.d/00-base.conf`.
+* If you're running `httpd`, enable them by editing `/etc/httpd/conf.modules.d/00-base.conf`.
 * If you're running `apache2`, enable them via `a2enmod`.
 
 You'll need these modules:
@@ -124,9 +141,19 @@ You'll need these modules:
 * `mod_ssl`
 * `mod_socache_shmcb` for any caching (sessions, stapling)
 
-```bash
-$ $(which apachectl && echo apachectl || echo httpd) -M | grep -E "rewrite|ssl|socache"
-```
+{{
+    shell_session("""\
+$ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rewrite|ssl|socache\"
+ authn_socache_module (shared)
+ rewrite_module (shared)
+ socache_dbm_module (shared)
+ socache_memcache_module (shared)
+ socache_shmcb_module (shared)
+ ssl_module (shared)
+"""
+    )
+}}
+
 
 
 {% endblock %}
