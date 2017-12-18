@@ -180,4 +180,54 @@ SSLProtocol -all +TLSv1.2
     )
 }}
 
+#### Generate a List of Good Ciphers
+
+You might check [the current list](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#23-use-secure-cipher-suites) to make sure this is up-to-date. You can also shorten this list; I was curious how it was built.
+
+```bash
+$ grep -Fx \
+        -f <(cat <<-EOF
+            ECDHE-ECDSA-AES128-GCM-SHA256
+            ECDHE-ECDSA-AES256-GCM-SHA384
+            ECDHE-ECDSA-AES128-SHA
+            ECDHE-ECDSA-AES256-SHA
+            ECDHE-ECDSA-AES128-SHA256
+            ECDHE-ECDSA-AES256-SHA384
+            ECDHE-RSA-AES128-GCM-SHA256
+            ECDHE-RSA-AES256-GCM-SHA384
+            ECDHE-RSA-AES128-SHA
+            ECDHE-RSA-AES256-SHA
+            ECDHE-RSA-AES128-SHA256
+            ECDHE-RSA-AES256-SHA384
+            DHE-RSA-AES128-GCM-SHA256
+            DHE-RSA-AES256-GCM-SHA384
+            DHE-RSA-AES128-SHA
+            DHE-RSA-AES256-SHA
+            DHE-RSA-AES128-SHA256
+            DHE-RSA-AES256-SHA256
+            EOF
+        ) \
+        <( openssl ciphers | tr ':' '\n' ) \
+
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-ECDSA-AES256-GCM-SHA384
+ECDHE-RSA-AES256-SHA384
+ECDHE-ECDSA-AES256-SHA384
+ECDHE-RSA-AES256-SHA
+ECDHE-ECDSA-AES256-SHA
+DHE-RSA-AES256-GCM-SHA384
+DHE-RSA-AES256-SHA256
+DHE-RSA-AES256-SHA
+ECDHE-RSA-AES128-GCM-SHA256
+ECDHE-ECDSA-AES128-GCM-SHA256
+ECDHE-RSA-AES128-SHA256
+ECDHE-ECDSA-AES128-SHA256
+ECDHE-RSA-AES128-SHA
+ECDHE-ECDSA-AES128-SHA
+DHE-RSA-AES128-GCM-SHA256
+DHE-RSA-AES128-SHA256
+DHE-RSA-AES128-SHA
+```
+That's not the order Qualys uses, and I've yet to figure out a good way to maintain the original order. However, it does show you what you can use.
+
 {% endblock %}
