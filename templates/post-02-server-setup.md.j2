@@ -1,7 +1,7 @@
 {% extends 'base.md.j2' %}
 {% block lead_paragraph %}
 
-This post is a catch-all for items that aren't closely related to the other major tasks. It begins with a list of very useful resources that provided a foundation for my research. Using `certbot`'s docs, it presents two methods to get `certbot` up and running. I present my approach to sharing Let's Encrypt resources, which aren't absolutely necessary but will most definitely referenced later.
+This post is a catch-all for items that aren't closely related to the other major tasks. It begins with a list of very useful resources that provided a foundation for my research. I've tried to build a general dependency list. Using `certbot`'s docs, it presents two methods to get `certbot` up and running. I present my approach to sharing Let's Encrypt resources, which aren't absolutely necessary but will most definitely referenced later.
 
 {% endblock %}
 {% block content %}
@@ -14,6 +14,13 @@ I've been shuffling around copypasta Let's Encrypt config since, I think, the mi
 * [This Gist](https://gist.github.com/AndreiD/3d4b36c58fa59c8ec1ef98276eacb636) is another great resouce. I believe I've had portions of it in production at some point.
 * [Qualys SSL Labs](https://www.ssllabs.com/) is the SSL gold standard. If you don't have a good Qualys rating, you don't have a good config.
 * Mozilla provides [a great generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/) that's probably responsible for a fair chunk of the articles out there now.
+
+## Requirements
+
+* [OpenSSL](https://www.openssl.org/): This entire series is written around `openssl` usage. As far as I know, it's necessary for any of the common webservers. If you can't get OpenSSL, there's a really good chance you shouldn't be serving from your machine.
+* A web server:
+    * [Nginx](https://www.nginx.com/): I'd recommend [at least `v1.12`](https://www.nginx.com/blog/nginx-1-12-1-13-released/) if possible. I can't point to specific sources, but I remember reading something about that at some point during my research this weekend. It is almost a year old by now.
+    * [Apache](http://www.apache.org/): To follow a majority of the instructions I was able to find easily, you'll need at least `v2.4`  [to access `mod_socache_shmcb`](https://httpd.apache.org/docs/2.4/mod/mod_socache_shmcb.html). The alternatives I remember were somehow even more opaque than `shmcb`, so I avoided them.
 
 ## `certbot`
 
