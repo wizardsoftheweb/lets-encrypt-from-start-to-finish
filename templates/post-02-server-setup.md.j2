@@ -184,31 +184,37 @@ SSLProtocol -all +TLSv1.2
 
 You might check [the current list](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#23-use-secure-cipher-suites) to make sure this is up-to-date. You can also shorten this list; I was curious how it was built.
 
-```bash
-$ grep -Fx \
-        -f <(cat <<-EOF
-            ECDHE-ECDSA-AES128-GCM-SHA256
-            ECDHE-ECDSA-AES256-GCM-SHA384
-            ECDHE-ECDSA-AES128-SHA
-            ECDHE-ECDSA-AES256-SHA
-            ECDHE-ECDSA-AES128-SHA256
-            ECDHE-ECDSA-AES256-SHA384
-            ECDHE-RSA-AES128-GCM-SHA256
-            ECDHE-RSA-AES256-GCM-SHA384
-            ECDHE-RSA-AES128-SHA
-            ECDHE-RSA-AES256-SHA
-            ECDHE-RSA-AES128-SHA256
-            ECDHE-RSA-AES256-SHA384
-            DHE-RSA-AES128-GCM-SHA256
-            DHE-RSA-AES256-GCM-SHA384
-            DHE-RSA-AES128-SHA
-            DHE-RSA-AES256-SHA
-            DHE-RSA-AES128-SHA256
-            DHE-RSA-AES256-SHA256
-            EOF
-        ) \
-        <( openssl ciphers | tr ':' '\n' ) \
+{{
+    highlight_block("""\
+ECDHE-ECDSA-AES128-GCM-SHA256
+ECDHE-ECDSA-AES256-GCM-SHA384
+ECDHE-ECDSA-AES128-SHA
+ECDHE-ECDSA-AES256-SHA
+ECDHE-ECDSA-AES128-SHA256
+ECDHE-ECDSA-AES256-SHA384
+ECDHE-RSA-AES128-GCM-SHA256
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-RSA-AES128-SHA
+ECDHE-RSA-AES256-SHA
+ECDHE-RSA-AES128-SHA256
+ECDHE-RSA-AES256-SHA384
+DHE-RSA-AES128-GCM-SHA256
+DHE-RSA-AES256-GCM-SHA384
+DHE-RSA-AES128-SHA
+DHE-RSA-AES256-SHA
+DHE-RSA-AES128-SHA256
+DHE-RSA-AES256-SHA256
+""",
+        explicit_lexer_name = 'TextLexer',
+        title = '/save/the/qualys/list/somewhere'
+    )
+}}
 
+We can use `grep` to search with a pattern from a `-f`ile, composed of newline-separated `-F`ixed strings, where each pattern matches the entire line (`-x`). All we need is the available ciphers. `openssl ciphers` returns a colon-separated list, so we can pass it through `tr`anslate before searching it.
+
+{{
+    shell_session("""\
+$ grep -Fx -f /save/the/qualys/list/somewhere <( openssl ciphers | tr ':' '\\n' )
 ECDHE-RSA-AES256-GCM-SHA384
 ECDHE-ECDSA-AES256-GCM-SHA384
 ECDHE-RSA-AES256-SHA384
@@ -227,7 +233,29 @@ ECDHE-ECDSA-AES128-SHA
 DHE-RSA-AES128-GCM-SHA256
 DHE-RSA-AES128-SHA256
 DHE-RSA-AES128-SHA
-```
-That's not the order Qualys uses, and I've yet to figure out a good way to maintain the original order. However, it does show you what you can use.
+"""
+    )
+}}
+
+If you didn't get any results, you should probably spend the few days necessary to move everything to a platform at least from the last decade. Or maybe `openssl` didn't get set up correctly.
+
+Unfortunately, this doesn't retain the order Qualys uses, and I've yet to figure out a good way to maintain the original order. A standard `bash` approach would be to `comm`pare the two lists, but `comm` expects the lists to be sorted.
+
+{{
+    shell_session("""\
+$ comm -12 /save/the/qualys/list/somewhere <( openssl ciphers | tr ':' '\\n' )
+comm: file 1 is not in sorted order
+ECDHE-RSA-AES256-GCM-SHA384
+comm: file 2 is not in sorted order
+ECDHE-RSA-AES256-SHA384
+$ comm --nocheck-order -12 /save/the/qualys/list/somewhere <( openssl ciphers | tr ':' '\\n' )
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-RSA-AES256-SHA384
+"""
+    )
+}}
+
+Brace expansion doesn't reduce the size by much, so I gave up after a few hours on that tangent. However, the important thing is that you now know what ciphers are available for you to use that also have the Qualys stamp of approval.
+
 
 {% endblock %}
