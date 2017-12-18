@@ -93,11 +93,11 @@ I have not tested this.
 
 I'll be using [the Qualys suggested configuration](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices) to set this up. Most of this stuff is explained elsewhere on the internet. I wanted to grok the whole process, so I wrote it up.
 
-#### Location
+## Location
 
 This creates a single file to hold the common config.
 
-###### Nginx
+### Nginx
 
 1. I don't like common configuration cluttering up the normal directories.
 2. Basically everyone you ask will suggest a different directory for common config.
@@ -110,7 +110,7 @@ $ sudo touch /etc/nginx/common/ssl.conf
     )
 }}
 
-###### Apache
+### Apache
 
 So this probably won't work without some TLC. Apache differentiates global vs scoped config, and some of the things I mention only work in one or the other. However, I'm going to pretend like it will work without issue and hope no one notices.
 
@@ -154,21 +154,30 @@ $ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rew
     )
 }}
 
-#### Specify Allowed TLS Versions
+## Specify Allowed TLS Versions
 
-Qualys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols).
+Qualys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols). If you're truly desperate, `v1.1` isn't too bad. Don't forget that Qualys writes the benchmark, so if you ignore that advice, your rating will take a hit.
 
-###### Nginx
+### Nginx
 
-```
+{{
+    highlight_block("""\
 ssl_protocols TLSv1.2;
-```
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
 
-###### Apache
+### Apache
 
-```
+{{
+    highlight_block("""\
 SSLProtocol -all +TLSv1.2
-```
-
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
 
 {% endblock %}
