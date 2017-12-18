@@ -447,7 +447,40 @@ Apache doesn't [make it easy](https://httpd.apache.org/docs/trunk/ssl/ssl_howto.
 {{
     highlight_block("""\
 SSLUseStapling On
-SSLStaplingCache "shmcb:ssl_stapling(32768)"
+SSLStaplingCache \"shmcb:ssl_stapling(32768)\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## SSL Session
+
+As a fullstack dev who spends most of his time performing brute force data analysis and putting out fires, I honestly don't have a good baseline for what is or is not a safe config. Mozilla might have [abandoned open communication](https://wiki.mozilla.org/Media/EME) to court [the favor of big corporations](https://boingboing.net/2017/09/21/democracy-dies-in-dullness.html), but they still occasionally support the little guy (just on the DL). [The Mozilla TLS Config Generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/) is a fantastic tool that's mostly like FOSS. After reading several hundred posts about Nginx and Apache hardening this weekend, I've come to recognize the Mozilla standards pretty well. That was my long-winded way of saying this is section is total copypasta.
+
+Due to [a security issue](https://wiki.mozilla.org/Security/Server_Side_TLS#TLS_tickets_.28RFC_5077.29), Mozilla doesn't recommend using them. More recently, [at least one named vulnerability](https://filippo.io/Ticketbleed/) has popped up regarding session tickets, so use them at your own risk.
+
+### Nginx
+
+{{
+    highlight_block("""\
+ssl_session_timeout 1d;
+ssl_session_cache shared:SSL:50m;
+ssl_session_tickets off;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+Apache again [makes this difficult](https://wiki.apache.org/httpd/SSLSessionCache). It does look like disabling tickets is easy, so they've got that going for them, which is nice.
+
+{{
+    highlight_block("""\
+SSLSessionCache \"<some value>\"
+SSLOpenSSLConfCmd Options -SessionTicket
 """,
         explicit_lexer_name = 'ApacheConfLexer',
         no_header = True
