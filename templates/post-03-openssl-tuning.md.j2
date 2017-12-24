@@ -85,7 +85,7 @@ $ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rew
 
 ## Specify Allowed TLS Versions
 
-Qualys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols). If you're truly desperate, `v1.1` isn't too bad. Don't forget that Qualys writes the benchmark, so if you ignore that advice, your rating will take a hit.
+Qualys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols). `v1.3` is [only a draft](https://tlswg.github.io/tls13-spec/), so including it might be odd. If you're truly desperate, `v1.1` isn't too bad. Don't forget that Qualys writes the benchmark, so if you ignore that advice, your rating will take a hit.
 
 ### Nginx
 
