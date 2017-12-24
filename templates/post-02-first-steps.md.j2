@@ -1,0 +1,144 @@
+{% extends 'base.md.j2' %}
+{% block lead_paragraph %}
+
+This post is a catch-all for items that aren't closely related to the other major tasks. It begins with a list of very useful resources that provided a foundation for my research, followed by a general dependency list. Using `certbot`'s docs, it presents two methods to get `certbot` up and running. It concludes with my approach to reusing Let's Encrypt and `certbot` config.
+
+{% endblock %}
+{% block content %}
+
+## Prototypical Resources
+
+I've been shuffling around copypasta Let's Encrypt config since, I think, the middle of last year (the company's only 19 months old, so it couldn't have been much longer than that). I don't have VCS versions of any of that, so unfortunately I can't point to a single article or book that shaped this. This list deserves highlighting if for no other reason than I had the link saved and totally forgot where I was going to use it.
+
+* [This Gist](https://gist.github.com/cecilemuller/a26737699a7e70a7093d4dc115915de8) is a great resource to snag a stable config you can put almost anywhere.
+* [This Gist](https://gist.github.com/AndreiD/3d4b36c58fa59c8ec1ef98276eacb636) is another great resouce. I believe I've had portions of it in production at some point.
+* [Qualys SSL Labs](https://www.ssllabs.com/) is the SSL gold standard. If you don't have a good Qualys rating, you don't have a good config.
+* Mozilla provides [a great generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/) that's probably responsible for a fair chunk of the articles out there now.
+
+## Requirements
+
+* [OpenSSL](https://www.openssl.org/): This entire series is written around `openssl` usage. As far as I know, it's necessary for any of the common webservers. If you can't get OpenSSL, there's a really good chance you shouldn't be serving from your machine.
+* A web server:
+    * [Nginx](https://www.nginx.com/): I'd recommend [at least `v1.12`](https://www.nginx.com/blog/nginx-1-12-1-13-released/) if possible. I can't point to specific sources, but I remember reading something about that at some point during my research this weekend. It is almost a year old by now.
+    * [Apache](http://www.apache.org/): To follow a majority of the instructions I was able to find easily, you'll need at least `v2.4`  [to access `mod_socache_shmcb`](https://httpd.apache.org/docs/2.4/mod/mod_socache_shmcb.html). The alternatives I remember were somehow even more opaque than `shmcb`, so I avoided them.
+    * You're on your own with something else. You can most likely figure out what you need to know with these examples, your server's docs, and Google.
+
+## `certbot`
+
+You can follow distro-specific instructions [via the official docs](https://certbot.eff.org/docs/install.html) for [almost everything](https://certbot.eff.org/docs/install.html#operating-system-packages). [The generic `wget` method](https://certbot.eff.org/docs/install.html#certbot-auto) usually provides the most current version; however, it's usually a better idea to wait for an official package.
+
+{{
+    highlight_block("""\
+$ wget https://dl.eff.org/certbot-auto
+$ wget -N https://dl.eff.org/certbot-auto.asc
+$ gpg2 --recv-key A2CFB51FA275A7286234E7B24D17C995CD9775F2
+$ gpg2 --trusted-key 4D17C995CD9775F2 --verify certbot-auto.asc certbot-auto
+$ chmod a+x ./certbot-auto
+$ sudo mv ./certbot-auto /usr/bin/certbot-auto
+""",
+    linenos = False,
+    explicit_lexer_name = 'BashSessionLexer',
+    no_header = True
+    )
+}}
+
+## Common Let's Encrypt Elements
+
+Let's Encrypt works by creating challenges on the server and verifying them through an external request. To simplify things, it's a good idea to create a centralized location for everything. With one or two sites, it's not a huge deal; it's very nice the more sites your server supports.
+
+### Group and Directory Creation
+
+I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV. Also [`exa` isn't vanilla](https://the.exa.website/).
+
+{{
+    shell_session("""\
+$ sudo groupadd letsencrypt
+$ sudo mkdir -p /srv/www/letsencrypt/.well-known/acme-challenge
+$ sudo chown -R :letsencrypt /srv/www/letsencrypt
+$ sudo chmod -R g+rwx /srv/www/letsencrypt
+$ exa --all --long --header --group-directories-first --group  --time-style long-iso --tree /srv
+Permissions Size User Group       Date Modified    Name
+drwxr-xr-x@    - root root        2017-12-24 01:06 /srv
+drwxr-xr-x     - root root        2017-12-24 00:57 └── www
+drwxrwxr-x     - root letsencrypt 2017-12-24 01:41    └── letsencrypt
+drwxrwxr-x     - root letsencrypt 2017-12-24 01:37       └── .well-known
+drwxrwxr-x     - root letsencrypt 2017-12-24 00:57          └── acme-challenge
+"""
+    )
+}}
+
+### Share and Test Access
+
+You can then add your server's service account to the `letsencrypt` group.
+
+{{
+    shell_session("""\
+$ sudo usermod -G letsencrypt nginx
+or
+$ sudo usermod -G letsencrypt apache
+or
+$ sudo usermod -G letsencrypt safer_single_purpose_named_service_account
+"""
+    )
+}}
+
+To make sure permissions work as intended, `touch` one of the new directories as the service account. You'll most likely need to specify a shell, as service accounts typically don't have login shells to limit outside access. If yours does expose a shell, you might think about changing that.
+
+{{
+    shell_session("""\
+$ getent passwd nginx | cut -d ':' -f 7
+/sbin/nologin
+$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" good_service_account || echo \"whoops\"
+$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" bad_service_account || echo \"whoops\"
+touch: setting times of '/srv/www/letsencrypt/.well-known/': Permission denied
+whoops
+"""
+    )
+}}
+
+### Reuse Location
+
+We'll also want to save a snippet exposing this structure.
+
+I use `/etc/<server>/common/` for my shared config, YMMV.
+
+#### Nginx
+
+This is just a simple location block.
+
+{{
+    highlight_block("""\
+location ^~ /.well-known/acme-challenge/ {
+    default_type \"text/plain\";
+    root /srv/www/letsencrypt;
+}
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        title = '/etc/nginx/common/letsencrypt.conf'
+    )
+}}
+
+I've got at least three servers running a variant of this right now.
+
+#### Apache
+
+From [the Let's Encrypt forums](https://community.letsencrypt.org/t/apache-multidomain-webroot/10663/2),
+
+{{
+    highlight_block("""\
+Alias /.well-known/acme-challenge/ /srv/www/letsencrypt/.well-known/acme-challenge/
+<Directory \"/srv/www/letsencrypt/.well-known/acme-challenge/\">
+    Options None
+    AllowOverride None
+    ForceType text/plain
+    RedirectMatch 404 \"^(?!/\.well-known/acme-challenge/[\w-]{43}$)\"
+</Directory>
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        title = '/etc/httpd/common/letsencrypt.conf'
+    )
+}}
+
+I have not tested this.
+
+{% endblock %}

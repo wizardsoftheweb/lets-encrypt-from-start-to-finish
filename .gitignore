@@ -19,3 +19,4 @@ post.html
 vagrant.log
 vagrant-test
 build
+scratch.sh
