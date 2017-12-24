@@ -46,17 +46,52 @@ $ sudo mv ./certbot-auto /usr/bin/certbot-auto
 
 Let's Encrypt works by creating challenges on the server and verifying them through an external request. To simplify things, it's a good idea to create a centralized location for everything. With one or two sites, it's not a huge deal; it's very nice the more sites your server supports.
 
-I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV.
+I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV. Also [`exa` isn't vanilla](https://the.exa.website/).
 
 {{
     shell_session("""\
 $ sudo groupadd letsencrypt
 $ sudo mkdir -p /srv/www/letsencrypt/.well-known/acme-challenge
 $ sudo chown -R :letsencrypt /srv/www/letsencrypt
-$ sudo chmod g+rwx /srv/www/letsencrypt
+$ sudo chmod -R g+rwx /srv/www/letsencrypt
+$ exa --all --long --header --group-directories-first --group  --time-style long-iso --tree /srv
+Permissions Size User Group       Date Modified    Name
+drwxr-xr-x@    - root root        2017-12-24 01:06 /srv
+drwxr-xr-x     - root root        2017-12-24 00:57 └── www
+drwxrwxr-x     - root letsencrypt 2017-12-24 01:41    └── letsencrypt
+drwxrwxr-x     - root letsencrypt 2017-12-24 01:37       └── .well-known
+drwxrwxr-x     - root letsencrypt 2017-12-24 00:57          └── acme-challenge
 """
     )
 }}
+
+You can then add your server's service account to the `letsencrypt` group.
+
+{{
+    shell_session("""\
+$ sudo usermod -G letsencrypt nginx
+or
+$ sudo usermod -G letsencrypt apache
+or
+$ sudo usermod -G letsencrypt safer_single_purpose_named_service_account
+"""
+    )
+}}
+
+To make sure permissions work as intended, `touch` one of the new directories as the service account. You'll most likely need to specific the shell, as service accounts typically don't have login shells. If yours does, you might think about changing that.
+
+{{
+    shell_session("""\
+$ getent passwd nginx | cut -d ':' -f 7
+/sbin/nologin
+$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" good_service_account
+
+$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" bad_service_account
+touch: setting times of ‘/srv/www/letsencrypt/.well-known/’: Permission denied
+"""
+    )
+}}
+
 
 We'll also want to save a snippet dropping the webserver here.
 
