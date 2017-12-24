@@ -389,5 +389,22 @@ SSLOpenSSLConfCmd Options -SessionTicket
     )
 }}
 
+## Condensed
+
+### Nginx
+
+{{
+    highlight_block("""\
+location ^~ /.well-known/acme-challenge/ {
+    default_type \"text/plain\";
+    root /srv/www/letsencrypt;
+}
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        title = '/etc/nginx/common/letsencrypt.conf'
+    )
+}}
+
+
 
 {% endblock %}
