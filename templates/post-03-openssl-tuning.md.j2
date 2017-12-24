@@ -211,7 +211,8 @@ I mention that because there's basically no way to protect yourself from actors 
 
 {{
     highlight_block("""\
-ssl_protocols secp256r1;
+# This is a terrible curve
+ssl_ecdh_curve prime256v1;
 """,
         explicit_lexer_name = 'NginxConfLexer',
         no_header = True
@@ -222,6 +223,7 @@ ssl_protocols secp256r1;
 
 {{
     highlight_block("""\
+# This is a terrible curve
 SSLOpenSSLConfCmd Curves P-256
 """,
         explicit_lexer_name = 'ApacheConfLexer',
@@ -401,7 +403,7 @@ location ^~ /.well-known/acme-challenge/ {
 }
 """,
         explicit_lexer_name = 'NginxConfLexer',
-        title = '/etc/nginx/common/letsencrypt.conf'
+        title = '/etc/nginx/common/ssl.conf'
     )
 }}
 
