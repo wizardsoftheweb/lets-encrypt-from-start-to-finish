@@ -48,11 +48,15 @@ HSTS will forcefully break your site if you don't have a proper TLS setup. Remem
 
 ### Nginx
 
+Append `; preload` if [you're on the list](https://hstspreload.org/);
+
 ```
 add_header Strict-Transport-Security "max-age=63072000; includeSubdomains";
 ```
 
 ### Apache
+
+Append `; preload` if [you're on the list](https://hstspreload.org/);
 
 ```
 Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains";
