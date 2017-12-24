@@ -86,15 +86,25 @@ Depending on your configuration, you might not want this. This will explicitly p
 
 ### Nginx
 
-```
+{{
+    highlight_block("""\
 add_header X-Frame-Options DENY;
-```
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
 
 ### Apache
 
-```
-Header set X-Frame-Options "DENY"
-```
+{{
+    highlight_block("""\
+Header always X-Frame-Options \"DENY\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
 
 ## Primary Header Config Redux
 
