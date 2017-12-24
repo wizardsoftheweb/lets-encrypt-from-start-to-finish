@@ -78,7 +78,7 @@ $ sudo usermod -G letsencrypt safer_single_purpose_named_service_account
     )
 }}
 
-To make sure permissions work as intended, `touch` one of the new directories as the service account. You'll most likely need to specific the shell, as service accounts typically don't have login shells. If yours does, you might think about changing that.
+To make sure permissions work as intended, `touch` one of the new directories as the service account. You'll most likely need to specific the shell, as service accounts typically don't have login shells to limit outside access. If yours does expose a shell, you might think about changing that.
 
 {{
     shell_session("""\
