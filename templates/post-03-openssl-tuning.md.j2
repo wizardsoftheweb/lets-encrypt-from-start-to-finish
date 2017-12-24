@@ -1,7 +1,7 @@
 {% extends 'base.md.j2' %}
 {% block lead_paragraph %}
 
-This post sets up all the backend security logic (minus headers). I've tried to provide an explanation of each component and good values to use (or the means to create your own). If you don't have OpenSSL, most of this is meaningless.
+This post sets up all the backend security logic (minus headers) to harden Nginx or Apache. I've tried to provide an explanation of each component and good values to use (or the means to create your own). If you don't have OpenSSL, most of this is meaningless.
 
 {% endblock %}
 {% block content %}
@@ -12,7 +12,7 @@ I'll be using [the Qualys suggested configuration](https://github.com/ssllabs/re
 
 If you're reading this more than, say, a month or two from its publication date, I'd strongly urge you to follow the documentation links to find the most current algorithms, best practices, and so on. Even if my minutae is current, you should always check sources when security is involved.
 
-## Location
+## Primary Config File
 
 This creates a single file to hold the common config.
 
@@ -49,7 +49,7 @@ Debian is usually apache2
     )
 }}
 
-* If you're running `httpd`, enable them by editing `/etc/httpd/conf.modules.d/00-base.conf`.
+* If you're running `httpd`, enable them by editing `/etc/httpd/conf.modules.d/00-base.conf` (or another file there; you might have to `grep` them out).
 * If you're running `apache2`, enable them via `a2enmod`.
 
 You'll need these modules:
@@ -67,6 +67,8 @@ $ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rew
 """
     )
 }}
+
+You might actually have to install additional external packages depending on how you get Apache, e.g. `mod_ssl` on RHEL systems.
 
 ## Specify Allowed TLS Versions
 
