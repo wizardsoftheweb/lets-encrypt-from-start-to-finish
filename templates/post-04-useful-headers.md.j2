@@ -110,6 +110,7 @@ Sources themselves have [lots of options](https://content-security-policy.com/#s
 * `'unsafe-(inline|eval)'` allows inline and dynamic execution and styling
 
 CSP [currently defines](https://content-security-policy.com/#directive) the following `-src` directives:
+
 * catch-all: `default-src`
 * JavaScript: `script-src`
 * stylesheets: `style-src`
@@ -119,6 +120,7 @@ CSP [currently defines](https://content-security-policy.com/#directive) the foll
 * plugins: `object-src`
 * HTML5 media: `media-src`
 * `iframe`s and web workers: `child-src`
+* form actions: `form-action`
 
 For example, suppose you're serving all your own content but need [a Google font](https://fonts.google.com/) to maintain consistent styling.
 
