@@ -44,6 +44,8 @@ As [previously mentioned](https://blog.wizardsoftheweb.pro/lets-encrypt-from-sta
 
 * `preload`: You can [submit your HSTS site](https://hstspreload.org/) to an external list. This is [a long-term commitment](https://hstspreload.org/#removal), so don't submit your site unless you're sure about config. I won't be using it here because of the extra steps, but I highly recommend it if you've got a stable setup.
 
+HSTS will forcefully break your site if you don't have a proper TLS setup. Remember, it's cached by the user agent, not something you have control over. You [can nuke it](https://www.thesslstore.com/blog/clear-hsts-settings-chrome-firefox/) when necessary, but it is a hassle to do so.
+
 ### Nginx
 
 ```
