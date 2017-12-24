@@ -82,7 +82,7 @@ Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomain
 
 ## Prevent Clickjacking
 
-Depending on your configuration, you might not want this. This will explicitly prevent anyone from serving your content inside an `iframe`.
+`iframe`s make everything difficult. One of the simplest possible attacks is to drop your content into an `iframe` and snoop the interaction. It's not always malicious; some people always try to embed things (still, in 2017) so they can do their own thing. `X-Frame-Options` gives you `iframe` control in user agents that support it.
 
 ### Nginx
 
