@@ -81,6 +81,12 @@ Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomain
     )
 }}
 
+## The Kitchen Sink
+
+[A `Content-Security-Policy` header](https://content-security-policy.com/) can handle a majority of the other topics here. In theory, CSP defines a secure execution contract. In the past, that was certainly true; [the recent spec addition of blackbox code](https://www.eff.org/deeplinks/2017/09/open-letter-w3c-director-ceo-team-and-membership) makes it much less secure (e.g. a media policy covers media, not blackbox code that must be run prior to actually running media). That's a personal soapbox, though.
+
+
+
 ## Prevent Clickjacking (Historical)
 
 Note that this is [superceded by a solid `Content-Security-Policy`](https://www.w3.org/TR/CSP11/#frame-ancestors-and-frame-options).
