@@ -46,6 +46,8 @@ $ sudo mv ./certbot-auto /usr/bin/certbot-auto
 
 Let's Encrypt works by creating challenges on the server and verifying them through an external request. To simplify things, it's a good idea to create a centralized location for everything. With one or two sites, it's not a huge deal; it's very nice the more sites your server supports.
 
+### Group and Directory Creation
+
 I prefer [the `/srv` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#SRVDATAFORSERVICESPROVIDEDBYSYSTEM) over [the `/var` directory](http://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#THEVARHIERARCHY), YMMV. Also [`exa` isn't vanilla](https://the.exa.website/).
 
 {{
@@ -64,6 +66,8 @@ drwxrwxr-x     - root letsencrypt 2017-12-24 00:57          └── acme-chall
 """
     )
 }}
+
+### Share and Test Access
 
 You can then add your server's service account to the `letsencrypt` group.
 
@@ -92,10 +96,11 @@ whoops
     )
 }}
 
+### Reuse Location
 
-We'll also want to save a snippet dropping the webserver here.
+We'll also want to save a snippet exposing this structure.
 
-### Nginx
+#### Nginx
 
 This is just a simple location block.
 
@@ -113,7 +118,7 @@ location ^~ /.well-known/acme-challenge/ {
 
 I've got at least three servers running a variant of this right now.
 
-### Apache
+#### Apache
 
 From [the Let's Encrypt forums](https://community.letsencrypt.org/t/apache-multidomain-webroot/10663/2),
 
