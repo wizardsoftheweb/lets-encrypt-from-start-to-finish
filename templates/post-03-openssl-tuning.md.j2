@@ -207,12 +207,65 @@ Qualys suggests using a [specific elliptic curve for ECDHE](https://github.com/s
 
 I mention that because there's basically no way to protect yourself from actors with superior tech. No matter what you do, there's always someone with more money and decades of classified algebra and combinatorics to keep you grounded. However, unless some of that knowledge has been put to code and leaked recently, most of the cryptography mentioned here will probably prevent wardriving script kiddies from messing with you or your users for a few years.
 
+If you'd like to use something a bit more secure, [check out SafeCurves](https://safecurves.cr.yp.to/). Like before, we'll need to check what's available to us with the installed version of OpenSSL.
+
+{{
+    shell_session("""\
+$ openssl ecparam -list_curves
+secp112r1 : SECG/WTLS curve over a 112 bit prime field
+...
+secp521r1 : NIST/SECG curve over a 521 bit prime field
+prime192v1: NIST/X9.62/SECG curve over a 192 bit prime field
+...
+prime256v1: X9.62/SECG curve over a 256 bit prime field
+sect113r1 : SECG curve over a 113 bit binary field
+...
+sect571r1 : NIST/SECG curve over a 571 bit binary field
+c2pnb163v1: X9.62 curve over a 163 bit binary field
+...
+c2tnb431r1: X9.62 curve over a 431 bit binary field
+wap-wsg-idm-ecid-wtls1: WTLS curve over a 113 bit binary field
+...
+wap-wsg-idm-ecid-wtls12: WTLS curvs over a 224 bit prime field
+brainpoolP160r1: RFC 5639 curve over a 160 bit prime field
+...
+brainpoolP512t1: RFC 5639 curve over a 512 bit prime field
+"""
+    )
+}}
+
+Comparing my list to SafeCurves yields zero safe curves. That's because OpenSSL has rolled [most of those into `v1.1`](https://www.openssl.org/news/openssl-1.1.0-notes.html), which isn't in stable channels yet (and probably won't ever make it to LTS channels).
+
+{{
+    shell_session("""\
+$ openssl version
+OpenSSL 1.0.2g  1 Mar 2016
+"""
+    )
+}}
+
+That means we have two options:
+
+1. Update OpenSSL manually and hope nothing system-critical actually needed the older version.
+2. Pick the best from what we've got for now.
+
+The first involves a ton of extra work (it's all fairly straightforward, just super involved), so I'm going to cover that in a later post, once I'm finished with the current slate. That leaves us with making due with what we've got. Mozilla recommends [`prime256v1`, `secp384r1`, and `secp521r1` for modern compatibility](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) (actually for any compatibility).
+
+{{
+    shell_session("""\
+$ openssl ecparam -list_curves | grep -E \"prime256v1|secp384r1|secp521r1\"
+secp384r1 : NIST/SECG curve over a 384 bit prime field
+secp521r1 : NIST/SECG curve over a 521 bit prime field
+prime256v1: X9.62/SECG curve over a 256 bit prime field
+"""
+    )
+}}
+
 ### Nginx
 
 {{
     highlight_block("""\
-# This is a terrible curve
-ssl_ecdh_curve prime256v1;
+ssl_ecdh_curve secp521r1:secp384r1:prime256v1;
 """,
         explicit_lexer_name = 'NginxConfLexer',
         no_header = True
@@ -223,8 +276,7 @@ ssl_ecdh_curve prime256v1;
 
 {{
     highlight_block("""\
-# This is a terrible curve
-SSLOpenSSLConfCmd Curves P-256
+SSLOpenSSLConfCmd Curves secp521r1:secp384r1:prime256v1
 """,
         explicit_lexer_name = 'ApacheConfLexer',
         no_header = True
