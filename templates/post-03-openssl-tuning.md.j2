@@ -392,7 +392,7 @@ Apache again [makes this difficult](https://wiki.apache.org/httpd/SSLSessionCach
 
 {{
     highlight_block("""\
-SSLSessionCache \"<some value>\"
+SSLSessionCache \"shmcb:ssl_scache(512000)\"
 SSLOpenSSLConfCmd Options -SessionTicket
 """,
         explicit_lexer_name = 'ApacheConfLexer',
