@@ -63,10 +63,14 @@ add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains\";
 
 Append `; preload` if [you're on the list](https://hstspreload.org/);
 
-```
-Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains";
-```
-
+{{
+    highlight_block("""\
+Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomains\";
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
 
 ## Primary Header Config Redux
 
