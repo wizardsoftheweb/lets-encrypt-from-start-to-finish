@@ -40,7 +40,7 @@ As [previously mentioned](https://blog.wizardsoftheweb.pro/lets-encrypt-from-sta
 
     Twitter uses [20 years](https://github.com/twitter/secureheaders#default-values). Most sites either use one or two years. Qualys wants to see [at least 120 days](https://blog.qualys.com/securitylabs/2016/03/28/the-importance-of-a-proper-http-strict-transport-security-implementation-on-your-web-server).
 
-
+* `includeSubdomains`: Without including subdomains, there are apparently [some cookie attacks](https://www.owasp.org/index.php/HTTP_Strict_Transport_Security_Cheat_Sheet#Problems) that can still be run. However, if you explicitly cannot serve subdomain content securely, this will cause problems. Err on the side of caution but check you subdomains.
 
 ### Nginx
 
