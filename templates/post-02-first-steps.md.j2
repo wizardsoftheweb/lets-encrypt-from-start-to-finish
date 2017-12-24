@@ -84,10 +84,10 @@ To make sure permissions work as intended, `touch` one of the new directories as
     shell_session("""\
 $ getent passwd nginx | cut -d ':' -f 7
 /sbin/nologin
-$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" good_service_account
-
-$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" bad_service_account
-touch: setting times of ‘/srv/www/letsencrypt/.well-known/’: Permission denied
+$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" good_service_account || echo \"whoops\"
+$ sudo su -s /bin/bash -c \"touch /srv/www/letsencrypt/.well-known\" bad_service_account || echo \"whoops\"
+touch: setting times of '/srv/www/letsencrypt/.well-known/': Permission denied
+whoops
 """
     )
 }}
