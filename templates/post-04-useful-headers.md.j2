@@ -85,6 +85,97 @@ Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomain
 
 [A `Content-Security-Policy` header](https://content-security-policy.com/) can handle a majority of the other topics here. In theory, CSP defines a secure execution contract. In the past, that was certainly true; [the recent spec addition of blackbox code](https://www.eff.org/deeplinks/2017/09/open-letter-w3c-director-ceo-team-and-membership) makes it much less secure (e.g. a media policy covers media, not blackbox code that must be run prior to actually running media). That's a personal soapbox, though.
 
+Good CSPs are fairly rigid and explicitly define as much as possible. As such, you might not be able to share them across sites like some of the other headers (i.e. maybe define this per site instead of in `/etc/<server>/common/ssl-headers.conf`). For example, a website that serves all its own assets will have a different CSP than a website that uses assets from a CDN.
+
+**WARNING:** CSPs might break everything if you don't know what you're doing (and if you do know what you're doing, change "might" to "most certainly will"). Luckily you can [test things via `Content-Security-Policy-Report`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri) until you're confident with the policy. CSPs are awesome but require much more work than the deprecated headers they, in part, replace.
+
+### Sources
+
+CSPs provide granular source definitions. The `default-src` directive is used for anything not specified, so it's a great place to start secure:
+{{
+    highlight_block("""\
+default-src: 'self';
+""",
+        explicit_lexer_name = 'TextLexer',
+        no_header = True
+    )
+}}
+
+Sources themselves have [lots of options](https://content-security-policy.com/#source_list).
+
+* `*` allows anything, i.e. don't use this
+* `'self'` allows content from the same origin
+* `example.com` allows content from `example.com`
+* `https:` allows anything over TLS
+* `'unsafe-(inline|eval)'` allows inline and dynamic execution and styling
+
+CSP [currently defines](https://content-security-policy.com/#directive) the following `-src` directives:
+* catch-all: `default-src`
+* JavaScript: `script-src`
+* stylesheets: `style-src`
+* images: `img-src`
+* AJAX, sockets, and events: `connect-src`
+* fonts: `font-src`
+* plugins: `object-src`
+* HTML5 media: `media-src`
+* `iframe`s and web workers: `child-src`
+
+For example, suppose you're serving all your own content but need [a Google font](https://fonts.google.com/) to maintain consistent styling.
+
+{{
+    highlight_block("""\
+# Unless specified, everything must come from this origin
+default-src: 'self';
+# Styles can come from here or Google (securely)
+# We might want to inline them, explicitly or with JavaScript
+style-src: 'unsafe-inline' 'self' https://fonts.googleapis.com;
+# Fonts can come from here or Google (securely)
+font-src: 'self' https://fonts.gstatic.com;
+""",
+        explicit_lexer_name = 'TextLexer',
+        no_header = True
+    )
+}}
+
+In Nginx,
+
+{{
+    highlight_block("""\
+add_header Content-Security-Policy \"default-src: 'self'; style-src: 'unsafe-inline' 'self' https://fonts.googleapis.com; font-src: 'self' https://fonts.gstatic.com;\";
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+In Apache,
+
+{{
+    highlight_block("""\
+Header always set Content-Security-Policy \"default-src: 'self'; style-src: 'unsafe-inline' 'self' https://fonts.googleapis.com; font-src: 'self' https://fonts.gstatic.com;\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+If you're loading lots of external content, an explicit CSP might not be practical. It's always a good idea to specify as much as possible, though. For example, this allows anything over TLS with some caveats on not markup:
+
+{{
+    highlight_block("""\
+# Allow anything loaded securely
+default-src: 'self' https:;
+# Allow images from anywhere
+img-src: *;
+# Restrict scripts to cdnjs but block eval
+script-src 'self' https://cdnjs.cloudflare.com;
+# Block plugins
+object-src: 'none';
+""",
+        explicit_lexer_name = 'TextLexer',
+        no_header = True
+    )
+}}
 
 
 ## Prevent Clickjacking (Historical)
