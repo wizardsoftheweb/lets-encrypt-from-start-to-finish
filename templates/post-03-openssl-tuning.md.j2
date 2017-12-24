@@ -474,7 +474,6 @@ For the `n`th time, I'd like to reiterate that I haven't actually tested this co
 
 {{
     highlight_block("""\
-
 SSLStaplingCache \"shmcb:/path/to/ssl_stapling(32768)\"
 SSLSessionCache \"shmcb:/path/to/ssl_scache(512000)\"
 
@@ -489,7 +488,7 @@ SSLSessionCache \"shmcb:/path/to/ssl_scache(512000)\"
 </VirtualHost>
 """,
         explicit_lexer_name = 'ApacheConfLexer',
-        no_header = True
+        title = '/etc/httpd/common/ssl.conf'
     )
 }}
 
