@@ -6,4 +6,56 @@ This post looks a collection of useful security headers. I've tried to explain w
 {% endblock %}
 {% block content %}
 
+## Primary Header Config
+
+I like to split the crypto config and header config. I'm always going to want to use a good algorithm, but I might not always want to use, say, `X-Frame-Options`. YMMV.
+
+[As I said before](https://blog.wizardsoftheweb.pro/lets-encrypt-from-start-to-finish-first-steps/#reuselocation), I like `/etc/<server>/common/`, YMMV.
+
+### Nginx
+
+{{
+    shell_session("""\
+$ sudo touch /etc/nginx/common/ssl-headers.conf
+"""
+    )
+}}
+
+### Apache
+
+{{
+    shell_session("""\
+$ sudo touch /etc/httpd/common/ssl-headers.conf
+"""
+    )
+}}
+
+
+## Primary Header Config Redux
+
+### Nginx
+
+{{
+    highlight_block("""\
+# Initially empty
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        title = '/etc/nginx/common/ssl-headers.conf'
+    )
+}}
+
+
+### Apache
+
+For the `n`th time, I'd like to reiterate that I haven't actually tested this config. I will. Eventually.
+
+{{
+    highlight_block("""\
+# Initially empty
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        title = '/etc/httpd/common/ssl-headers.conf'
+    )
+}}
+
 {% endblock %}
