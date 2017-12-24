@@ -75,11 +75,8 @@ You'll need these modules:
 
 {{
     shell_session("""\
-$ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rewrite|ssl|socache\"
- authn_socache_module (shared)
+$ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rewrite|shmcb|ssl\"
  rewrite_module (shared)
- socache_dbm_module (shared)
- socache_memcache_module (shared)
  socache_shmcb_module (shared)
  ssl_module (shared)
 """
