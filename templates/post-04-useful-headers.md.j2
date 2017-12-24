@@ -6,6 +6,14 @@ This post looks a collection of useful security headers. I've tried to explain w
 {% endblock %}
 {% block content %}
 
+## Primary Security Reference
+
+Originally, this post was sourced from a collection of personal experience and interesting sources found during writing. However, once I split this post out, I wanted to find some best practices (my code, while certainly practice, isn't necessarily the best). The [Open Web Application Security Project](https://www.owasp.org/index.php/Main_Page) maintains [a list of useful headers](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project#tab=Headers), which should all be covered here.
+
+## Caveats
+
+* I didn't include [HTTP Public Key Pinning](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning) because it's pretty easy to screw up. As Let's Encrypt certs aren't necessarily as stable as commercial alternatives (i.e. may change more frequently without manual intervention), I want to do more research on this.
+
 ## Primary Header Config
 
 I like to split the crypto config and header config. I'm always going to want to use a good algorithm, but I might not always want to use, say, `X-Frame-Options`. YMMV.
