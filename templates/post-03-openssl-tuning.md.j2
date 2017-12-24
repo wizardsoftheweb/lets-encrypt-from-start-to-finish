@@ -1,0 +1,409 @@
+{# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄░░░░░░░░░
+░░░░░░░░▄▀░░░░░░░░░░░░▄░░░░░░░▀▄░░░░░░░
+░░░░░░░░█░░▄░░░░▄░░░░░░░░░░░░░░█░░░░░░░
+░░░░░░░░█░░░░░░░░░░░░▄█▄▄░░▄░░░█░▄▄▄░░░
+░▄▄▄▄▄░░█░░░░░░▀░░░░▀█░░▀▄░░░░░█▀▀░██░░
+░██▄▀██▄█░░░▄░░░░░░░██░░░░▀▀▀▀▀░░░░██░░
+░░▀██▄▀██░░░░░░░░▀░██▀░░░░░░░░░░░░░▀██░
+░░░░▀████░▀░░░░▄░░░██░░░▄█░░░░▄░▄█░░██░
+░░░░░░░▀█░░░░▄░░░░░██░░░░▄░░░▄░░▄░░░██░
+░░░░░░░▄█▄░░░░░░░░░░░▀▄░░▀▀▀▀▀▀▀▀░░▄▀░░
+░░░░░░█▀▀█████████▀▀▀▀████████████▀░░░░
+░░░░░░████▀░░███▀░░░░░░▀███░░▀██▀░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ #}
+
+{% extends 'base.md.j2' %}
+{% block lead_paragraph %}
+
+{% endblock %}
+{% block content %}
+
+## Generic SSL Config
+
+I'll be using [the Qualys suggested configuration](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices) to set this up. Most of this stuff is explained elsewhere on the internet. I wanted to grok the whole process, so I wrote it up.
+
+## Location
+
+This creates a single file to hold the common config.
+
+[As I said before](https://blog.wizardsoftheweb.pro/lets-encrypt-from-start-to-finish-first-steps/#reuselocation), I like `/etc/<server>/common/`, YMMV.
+
+### Nginx
+
+{{
+    shell_session("""\
+$ sudo touch /etc/nginx/common/ssl.conf
+"""
+    )
+}}
+
+### Apache
+
+So this probably won't work without some TLC. Apache differentiates global vs scoped config, and some of the things I mention only work in one or the other. However, I'm going to pretend like it will work without issue and hope no one notices.
+
+{{
+    shell_session("""\
+$ sudo touch /etc/httpd/common/ssl.conf
+"""
+    )
+}}
+
+You'll also need to ensure you've got the right modules installed and running. Depending [on your server's distro](https://askubuntu.com/a/600902) and the version of Apache you're running, installing and enabling modules is done differently.
+
+{{
+    shell_session("""\
+$ which a2enmod && echo \"apache2\" || echo \"httpd\"
+RHEL is usually httpd
+Debian is usually apache2
+"""
+    )
+}}
+
+* If you're running `httpd`, enable them by editing `/etc/httpd/conf.modules.d/00-base.conf`.
+* If you're running `apache2`, enable them via `a2enmod`.
+
+You'll need these modules:
+
+* `mod_rewrite`
+* `mod_ssl`
+* `mod_socache_shmcb` for any caching (sessions, stapling)
+
+{{
+    shell_session("""\
+$ eval \"$(which apachectl && echo apachectl || echo httpd) -M\" | grep -E \"rewrite|ssl|socache\"
+ authn_socache_module (shared)
+ rewrite_module (shared)
+ socache_dbm_module (shared)
+ socache_memcache_module (shared)
+ socache_shmcb_module (shared)
+ ssl_module (shared)
+"""
+    )
+}}
+
+## Specify Allowed TLS Versions
+
+Qualys says [`v1.2` is the only secure version](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#22-use-secure-protocols). If you're truly desperate, `v1.1` isn't too bad. Don't forget that Qualys writes the benchmark, so if you ignore that advice, your rating will take a hit.
+
+### Nginx
+
+{{
+    highlight_block("""\
+ssl_protocols TLSv1.2;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+{{
+    highlight_block("""\
+SSLProtocol -all +TLSv1.2
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Generate a List of Good Ciphers
+
+You might check [the current list](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#23-use-secure-cipher-suites) to make sure this is up-to-date. You can also shorten this list; I was curious how it was built.
+
+{{
+    highlight_block("""\
+ECDHE-ECDSA-AES128-GCM-SHA256
+ECDHE-ECDSA-AES256-GCM-SHA384
+ECDHE-ECDSA-AES128-SHA
+ECDHE-ECDSA-AES256-SHA
+ECDHE-ECDSA-AES128-SHA256
+ECDHE-ECDSA-AES256-SHA384
+ECDHE-RSA-AES128-GCM-SHA256
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-RSA-AES128-SHA
+ECDHE-RSA-AES256-SHA
+ECDHE-RSA-AES128-SHA256
+ECDHE-RSA-AES256-SHA384
+DHE-RSA-AES128-GCM-SHA256
+DHE-RSA-AES256-GCM-SHA384
+DHE-RSA-AES128-SHA
+DHE-RSA-AES256-SHA
+DHE-RSA-AES128-SHA256
+DHE-RSA-AES256-SHA256
+""",
+        explicit_lexer_name = 'TextLexer',
+        title = '/save/the/qualys/list/somewhere'
+    )
+}}
+
+We can use `grep` to search with a pattern from a `-f`ile, composed of newline-separated `-F`ixed strings, where each pattern matches the entire line (`-x`). All we need is the available ciphers. `openssl ciphers` returns a colon-separated list, so we can pass it through `tr`anslate before searching it.
+
+{{
+    shell_session("""\
+$ grep -Fx -f /save/the/qualys/list/somewhere <( openssl ciphers | tr ':' '\\n' )
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-ECDSA-AES256-GCM-SHA384
+ECDHE-RSA-AES256-SHA384
+ECDHE-ECDSA-AES256-SHA384
+ECDHE-RSA-AES256-SHA
+ECDHE-ECDSA-AES256-SHA
+DHE-RSA-AES256-GCM-SHA384
+DHE-RSA-AES256-SHA256
+DHE-RSA-AES256-SHA
+ECDHE-RSA-AES128-GCM-SHA256
+ECDHE-ECDSA-AES128-GCM-SHA256
+ECDHE-RSA-AES128-SHA256
+ECDHE-ECDSA-AES128-SHA256
+ECDHE-RSA-AES128-SHA
+ECDHE-ECDSA-AES128-SHA
+DHE-RSA-AES128-GCM-SHA256
+DHE-RSA-AES128-SHA256
+DHE-RSA-AES128-SHA
+"""
+    )
+}}
+
+If you didn't get any results, you should probably spend the few days necessary to move everything to a platform at least from the last decade. Or maybe `openssl` didn't get set up correctly.
+
+Unfortunately, this doesn't retain the order Qualys uses, and I've yet to figure out a good way to maintain the original order. A standard `bash` approach would be to `comm`pare the two lists, but `comm` expects the lists to be sorted.
+
+{{
+    shell_session("""\
+$ comm -12 /save/the/qualys/list/somewhere <( openssl ciphers | tr ':' '\\n' )
+comm: file 1 is not in sorted order
+ECDHE-RSA-AES256-GCM-SHA384
+comm: file 2 is not in sorted order
+ECDHE-RSA-AES256-SHA384
+$ comm --nocheck-order -12 /save/the/qualys/list/somewhere <( openssl ciphers | tr ':' '\\n' )
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-RSA-AES256-SHA384
+"""
+    )
+}}
+
+Brace expansion doesn't reduce the size by much, so I gave up after a few hours on that tangent. However, the important thing is that you now know what ciphers are available for you to use that also have the Qualys stamp of approval.
+
+### Nginx
+
+I don't think specifying all these is a great idea, but I actually have no idea.
+
+{{
+    highlight_block("""\
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+I don't think specifying all these is a great idea, but I actually have no idea.
+
+{{
+    highlight_block("""\
+SSLCipherSuite \"ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Specify ECDHE Curve
+
+Qualys suggests using a [specific elliptic curve for ECDHE](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#26-use-strong-key-exchange). [Elliptic Curve Cryptography](https://wiki.openssl.org/index.php/Elliptic_Curve_Cryptography), like other algorithms, has both secure and insecure methods. Also like other algorithms, there are [a few common, widely used components](https://tools.ietf.org/html/rfc5480#section-2.1.1.1). Qualys recommends [`secp256r1` or `P-256`](https://tools.ietf.org/html/rfc5480#page-6). Coincidentally, that curve has [most likely been backdoored by government agencies for years](https://it.slashdot.org/story/13/09/11/1224252/are-the-nist-standard-elliptic-curves-back-doored) and has even been [put down by government agencies in recent years](http://blog.bettercrypto.com/?p=1917).
+
+I mention that because there's basically no way to protect yourself from actors with superior tech. No matter what you do, there's always someone with more money and decades of classified algebra and combinatorics to keep you grounded.
+
+### Nginx
+
+{{
+    highlight_block("""\
+ssl_protocols secp256r1;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+{{
+    highlight_block("""\
+SSLOpenSSLConfCmd Curves P-256
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Generate Diffie-Hellman Group
+
+Vanilla OpenSSL is susceptible to [Logjam](https://weakdh.org/) (among other things), so you'll want to create a new Diffie-Hellman group. Qualys [mentions this as well](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#26-use-strong-key-exchange); basically, don't use defaults.
+
+
+### Nginx
+
+To generate,
+
+{{
+    shell_session("""\
+$ sudo mkdir -p /etc/nginx/ssl
+$ sudo openssl dhparam -out /etc/nginx/ssl/dhparams.pem 2048
+Generating DH parameters, 2048 bit long safe prime, generator 2
+This is going to take a long time
+.+.+.+...........
+"""
+    )
+}}
+
+To use,
+
+{{
+    highlight_block("""\
+ssl_dhparam /etc/nginx/ssl/dhparams.pem;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+To generate,
+
+{{
+    shell_session("""\
+$ sudo mkdir -p /etc/httpd/ssl
+$ sudo openssl dhparam -out /etc/httpd/ssl/dhparams.pem 2048
+Generating DH parameters, 2048 bit long safe prime, generator 2
+This is going to take a long time
+.+.+.+...........
+"""
+    )
+}}
+
+To use,
+
+{{
+    highlight_block("""\
+SSLOpenSSLConfCmd DHParameter \"/etc/httpd/ssl/dhparams.pem\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Use Server Cipher Preference
+
+Having done all of this work to actually set up cipher precedence and curves and lots of other things, it's important to actually specify we'd prefer it if clients would use our configuration instead of theirs. Assuming all methods are the same, we have more control with our configuration.
+
+### Nginx
+
+{{
+    highlight_block("""\
+ssl_prefer_server_ciphers on;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+{{
+    highlight_block("""\
+SSLHonorCipherOrder on
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## OCSP Stapling
+
+[OCSP Stapling](https://en.wikipedia.org/wiki/OCSP_stapling) makes things a little bit simpler for Let's Encrypt. To verify a cert's veracity, clients historically had to send a request to the CA, negotiate that, and then, knowing the cert was valid, hit the intended address. OCSP stapling allows your server to periodically timestamp its validity through the magic of digital signatures.
+
+### Nginx
+
+This config requires [also setting `ssl_trusted_certificate`](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_stapling_verify). This will be handled later, once we actually request a cert.
+
+{{
+    highlight_block("""\
+ssl_stapling on;
+ssl_stapling_verify on;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+It's fairly common to see a `resolver` defined as well, and equally common to see it defined as Google.
+
+{{
+    highlight_block("""\
+resolver 8.8.8.8 8.8.4.4;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+I'm not a huge fan of this because it routes everything to Google. If left out, the resolver defaults to your DNS. Theoretically, my DNS already knows a user is checking me out. Google doesn't need to be involved for the same reasons [OCSP stapling was created](https://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol#Privacy_concerns).
+
+### Apache
+
+Apache doesn't [make it easy](https://httpd.apache.org/docs/trunk/ssl/ssl_howto.html#ocspstapling). Here's [a Stack Exchange thread](https://unix.stackexchange.com/a/394074) that seems to cover the important stuff. This is the first of many times [the new Apache cache](https://httpd.apache.org/docs/2.4/mod/mod_socache_shmcb.html) will pop up, and, every single time, it requires manual setup.
+
+{{
+    highlight_block("""\
+SSLUseStapling On
+SSLStaplingCache \"shmcb:ssl_stapling(32768)\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## SSL Session
+
+As a fullstack dev who spends most of his time performing brute force data analysis and putting out fires, I honestly don't have a good baseline for what is or is not a safe config. Mozilla might have [abandoned open communication](https://wiki.mozilla.org/Media/EME) to court [the favor of big corporations](https://boingboing.net/2017/09/21/democracy-dies-in-dullness.html), but they still occasionally support the little guy (just on the DL). [The Mozilla TLS Config Generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/) is a fantastic tool to generate actually strong defaults. After reading several hundred posts about Nginx and Apache hardening this weekend, I've come to recognize the Mozilla standards pretty well. That was my long-winded way of saying this is section is total copypasta.
+
+Due to [a security issue](https://wiki.mozilla.org/Security/Server_Side_TLS#TLS_tickets_.28RFC_5077.29), Mozilla doesn't recommend using them. More recently, [at least one named vulnerability](https://filippo.io/Ticketbleed/) has popped up regarding session tickets, so use them at your own risk.
+
+### Nginx
+
+{{
+    highlight_block("""\
+ssl_session_timeout 1d;
+ssl_session_cache shared:SSL:50m;
+ssl_session_tickets off;
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+Apache again [makes this difficult](https://wiki.apache.org/httpd/SSLSessionCache). It does look like disabling tickets is easy, so they've got that going for them, which is nice.
+
+{{
+    highlight_block("""\
+SSLSessionCache \"<some value>\"
+SSLOpenSSLConfCmd Options -SessionTicket
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Review
+
+That should cover [most of the SSL config](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) that can be duplicated. Choosing a standard, determining ciphers, generating not-default keys,
+
+
+
+{% endblock %}
