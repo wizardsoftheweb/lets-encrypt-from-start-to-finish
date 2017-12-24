@@ -12,6 +12,7 @@ Originally, this post was sourced from a collection of personal experience and i
 
 ## Caveats
 
+* **EVERYTHING HERE CAN BE SIDESTEPPED**. Headers are sent [with a request/response](https://tools.ietf.org/html/rfc7540#section-8.1.2), which means they can be completely ignored. Headers do not prevent bad actors from doing malicious things. They do, however, force average users to do things as expected, which usually prevents bad actors from tricking average users into doing malicious things. This is a **very** important distinction.
 * I didn't include [HTTP Public Key Pinning](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning) because it's pretty easy to screw up. As Let's Encrypt certs aren't necessarily as stable as commercial alternatives (i.e. may change more frequently without manual intervention), I want to do more research on this.
 
 ## Primary Header Config
