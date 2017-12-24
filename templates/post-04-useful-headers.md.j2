@@ -30,6 +30,30 @@ $ sudo touch /etc/httpd/common/ssl-headers.conf
     )
 }}
 
+## HSTS
+
+As [previously mentioned](https://blog.wizardsoftheweb.pro/lets-encrypt-from-start-to-finish-overview/#hsts), HSTS ensures users use secure protocols. The HSTS header, `Strict-Transport-Security`, has three primary options:
+
+* `max-age`: This specifies the maximum amount of time a user agent (browser) should cache the header. To make things easier, we'll give the cache a half-life of two years:
+
+    ![63072000-origin-1](/content/images/2017/12/63072000-origin-1.png)
+
+    Twitter uses [20 years](https://github.com/twitter/secureheaders#default-values). Most sites either use one or two years. Qualys wants to see [at least 120 days](https://blog.qualys.com/securitylabs/2016/03/28/the-importance-of-a-proper-http-strict-transport-security-implementation-on-your-web-server).
+
+
+
+### Nginx
+
+```
+add_header Strict-Transport-Security "max-age=63072000; includeSubdomains";
+```
+
+### Apache
+
+```
+Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains";
+```
+
 
 ## Primary Header Config Redux
 
