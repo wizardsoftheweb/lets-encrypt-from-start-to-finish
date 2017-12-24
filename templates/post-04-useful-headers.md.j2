@@ -89,7 +89,7 @@ Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomain
 
 {{
     highlight_block("""\
-add_header X-Frame-Options DENY;
+add_header X-Frame-Options deny;
 """,
         explicit_lexer_name = 'NginxConfLexer',
         no_header = True
@@ -100,7 +100,7 @@ add_header X-Frame-Options DENY;
 
 {{
     highlight_block("""\
-Header always X-Frame-Options \"DENY\"
+Header always X-Frame-Options \"deny\"
 """,
         explicit_lexer_name = 'ApacheConfLexer',
         no_header = True
