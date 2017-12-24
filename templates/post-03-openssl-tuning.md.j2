@@ -29,7 +29,7 @@ $ sudo touch /etc/nginx/common/ssl.conf
 
 ### Apache
 
-So this probably won't work without some TLC. Apache differentiates global vs scoped config, and some of the things I mention only work in one or the other. However, I'm going to pretend like it will work without issue and hope no one notices.
+So this probably won't work without some TLC. Apache differentiates global vs scoped config, and some of the things I mention only work in one or the other. [The official docs](https://httpd.apache.org/docs/2.4/mod/mod_ssl.html#sslprotocol) state scope per directive and I've tried to match that. However, I'm going to pretend like it will work without issue and hope no one says anything.
 
 {{
     shell_session("""\
