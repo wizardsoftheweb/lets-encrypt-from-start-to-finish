@@ -80,6 +80,22 @@ Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomain
     )
 }}
 
+## Prevent Clickjacking
+
+Depending on your configuration, you might not want this. This will explicitly prevent anyone from serving your content inside an `iframe`.
+
+### Nginx
+
+```
+add_header X-Frame-Options DENY;
+```
+
+### Apache
+
+```
+Header set X-Frame-Options "DENY"
+```
+
 ## Primary Header Config Redux
 
 ### Nginx
