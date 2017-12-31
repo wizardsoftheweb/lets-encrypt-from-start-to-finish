@@ -86,15 +86,16 @@ server {
     highlight_block("""\
 Listen 80
 <VirtualHost *:80>
-    DocumentRoot "/srv/www/example.com"
+    DocumentRoot \"/srv/www/example.com\"
     ServerName example.com www.example.com
     Include /etc/httpd/common/letsencrypt.conf
 </VirtualHost>
 """,
         explicit_lexer_name = 'ApacheConfLexer',
-        title = "/etc/nginx/vhosts.d/example.com.conf"
+        title = "/etc/httpd/vhosts.d/example.com.conf"
     )
 }}
+
 ### Generate the Cert
 
 With everything in place, we can finally create a cert. All of this manual configuration was done to give us some flexibility over the final product. We're going to pass `certbot` a ton of options to handle this
@@ -202,29 +203,30 @@ server {
     )
 }}
 
-{% endblock %}
-{#
-
-
-
 #### Apache
 
 We paused with a config like this:
 
-```
+{{
+    highlight_block("""\
 Listen 80
 <VirtualHost *:80>
-    DocumentRoot "/srv/www/example.com"
+    DocumentRoot \"/srv/www/example.com\"
     ServerName example.com www.example.com
     Include /etc/httpd/common/letsencrypt.conf
 </VirtualHost>
-```
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        title = "/etc/httpd/vhosts.d/example.com.conf"
+    )
+}}
 We can replace it with something like this:
-```
+{{
+    highlight_block("""\
 Listen 80
 Listen 443
 <VirtualHost *:80>
-    DocumentRoot "/srv/www/example.com"
+    DocumentRoot \"/srv/www/example.com\"
     ServerName example.com www.example.com
     Include /etc/httpd/common/letsencrypt.conf
     # https://serverfault.com/a/739128/446829
@@ -234,7 +236,7 @@ Listen 443
     RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 </VirtualHost>
 <VirtualHost *:443>
-    DocumentRoot "/srv/www/example.com"
+    DocumentRoot \"/srv/www/example.com\"
     ServerName example.com www.example.com
 
     # Include scoped config
@@ -243,10 +245,23 @@ Listen 443
     SSLCertificateFile /etc/letsencrypt/live/example.com/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/example.com/privkey.pem
 </VirtualHost>
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        title = "/etc/httpd/vhosts.d/example.com.conf"
+    )
+}}
+
 # Include global config
 ```
 
 As before, I haven't tested the Apache config. At all. It might fail spectatularly.
+
+{% endblock %}
+{#
+
+
+
+
 
 ### Restart the Server
 
