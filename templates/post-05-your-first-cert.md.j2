@@ -95,13 +95,6 @@ Listen 80
         no_header = True
     )
 }}
-
-{% endblock %}
-{#
-
-
-
-
 ### Generate the Cert
 
 With everything in place, we can finally create a cert. All of this manual configuration was done to give us some flexibility over the final product. We're going to pass `certbot` a ton of options to handle this
@@ -113,23 +106,27 @@ With everything in place, we can finally create a cert. All of this manual confi
 * We're going to specify the webroot (i.e. the directory to place the challenges)
 * We're going to specify all the domains AND subdomains on the cert
 
-```bash
-$ certbot                       \
-    certonly                    \
-    --agree-tos                 \
-    --email your@email.address  \
-    --no-eff-email              \
-    -w /srv/www/letsencrypt     \
-    -d example.com              \
-    -d www.example.com          \
+{{
+    shell_session("""\
+$ certbot                       \\
+    certonly                    \\
+    --agree-tos                 \\
+    --email your@email.address  \\
+    --no-eff-email              \\
+    -w /srv/www/letsencrypt     \\
+    -d example.com              \\
+    -d www.example.com          \\
     -d anotherone.example.com
-```
+"""
+    )
+}}
 
 Depending on how things ran, you might have an issue or two to fix. If it worked, you'll get a confirmation notice.
 
 You can verify the files were properly created by checking the Let's Encrypt directory.
 
-```bash
+{{
+    shell_session("""\
 $ cat /etc/letsencrypt/live/example.com/README
 This directory contains your keys and certificates.
 
@@ -141,7 +138,13 @@ This directory contains your keys and certificates.
 
 We recommend not moving these files. For more information, see the Certbot
 User Guide at https://certbot.eff.org/docs/using.html#where-are-my-certificates.
-```
+"""
+    )
+}}
+
+
+{% endblock %}
+{#
 
 ### Wiring up the Cert
 
