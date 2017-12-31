@@ -47,18 +47,20 @@ Listen 80
 
 ## Providing the User Challenge Access
 
-The reason we built the group and external folder previously was so that it would be easy to access later. Simply add the website user to the `letsencrypt` group.
+The reason we built [the group and external folder previously] TODO (groupanddirectorycreation) was so that it would be easy to access later. Simply add the website user to the `letsencrypt` group.
 
 {{
     shell_session("""\
 $ sudo usermod -G letsencrypt nginx
-# or, if you're being careful
+or, if you're being careful
 $ sudo usermod -G letsencrypt siteserviceaccount
 """
     )
 }}
 
 ## Include the Challenge Config
+
+We set up [a challenge directory earlier] TODO (reuselocation)
 
 ### Nginx
 
@@ -114,6 +116,7 @@ $ certbot                       \\
     --agree-tos                 \\
     --email your@email.address  \\
     --no-eff-email              \\
+    --webroot                   \\
     -w /srv/www/letsencrypt     \\
     -d example.com              \\
     -d www.example.com          \\
@@ -168,11 +171,12 @@ server {
 }}
 
 We can replace it with something like this:
+
 {{
     highlight_block("""\
 server {
     listen 80 default_server;
-    listen [::]:80 default_server;
+    listen [::]:80 default_server ipv6only=on;
 
     server_name example.com www.example.com;
 
@@ -203,7 +207,7 @@ server {
     )
 }}
 
-#### Apache
+### Apache
 
 We paused with a config like this:
 
@@ -220,7 +224,9 @@ Listen 80
         title = "/etc/httpd/vhosts.d/example.com.conf"
     )
 }}
+
 We can replace it with something like this:
+
 {{
     highlight_block("""\
 Listen 80
@@ -280,10 +286,10 @@ You can quickly verify your settings with `openssl`. If there are any errors and
 
 {{
     shell_session("""\
-$ openssl s_client              \
-    -connect example.com:443    \
-    -servername example.com     \
-    -tls1_2                     \
+$ openssl s_client              \\
+    -connect example.com:443    \\
+    -servername example.com     \\
+    -tls1_2                     \\
     -status
 
 CONNECTED(00000003)
@@ -329,7 +335,10 @@ To make sure your content is coming through as intended, you can make [actual HT
 
 {{
     shell_session("""\
-$ openssl s_client -connect wizardsoftheweb.pro:443 -servername wizardsoftheweb.pro -tls1_2 -status -quiet
+$ openssl s_client                      \\
+    -connect wizardsoftheweb.pro:443    \\
+    -servername wizardsoftheweb.pro     \\
+    -tls1_2 -status -quiet
 depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
 verify return:1
 depth=1 C = US, O = Let's Encrypt, CN = Let's Encrypt Authority X3
