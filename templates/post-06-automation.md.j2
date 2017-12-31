@@ -1,0 +1,434 @@
+{% extends 'base.md.j2' %}
+{% block lead_paragraph %}
+
+This post looks at several different ways to automate cert renewal. I tried to cater to everyone by including `cron` and `systemd` options. If you don't have your server set up to send emails, you might want to do that first.
+
+{% endblock %}
+{% block content %}
+
+## Automating Renewals
+
+Now that everything's installed and in place, we've got to think about keeping the cert current. Let's Encrypt certs have [a 90-day lifetime](https://letsencrypt.org/2015/11/09/why-90-days.html), which is substantially shorter than a typical commercial cert. `certbot` is built to handle automated renewals and can update everything in place without any intervention on your part.
+
+If you try running `certbot renew` right now, you'll probably get something like this:
+
+{{
+    shell_session("""\
+$ sudo certbot renew
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+-------------------------------------------------------------------------------
+Processing /etc/letsencrypt/renewal/example.com.conf
+-------------------------------------------------------------------------------
+Cert not yet due for renewal
+
+-------------------------------------------------------------------------------
+
+The following certs are not due for renewal yet:
+  /etc/letsencrypt/live/example.com.pro/fullchain.pem (skipped)
+No renewals were attempted.
+-------------------------------------------------------------------------------
+"""
+    )
+}}
+
+While the cert isn't due for renewal, we can actually test the renewal process like this:
+
+{{
+    shell_session("""\
+$ certbot renew --dry-run
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+-------------------------------------------------------------------------------
+Processing /etc/letsencrypt/renewal/example.com.conf
+-------------------------------------------------------------------------------
+Cert not due for renewal, but simulating renewal for dry run
+Plugins selected: Authenticator webroot, Installer None
+Starting new HTTPS connection (1): acme-staging.api.letsencrypt.org
+Renewing an existing certificate
+Performing the following challenges:
+http-01 challenge for example.com
+http-01 challenge for www.example.com
+Waiting for verification...
+Cleaning up challenges
+Dry run: skipping deploy hook command
+
+-------------------------------------------------------------------------------
+new certificate deployed without reload, fullchain is
+/etc/letsencrypt/live/example.com/fullchain.pem
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+** DRY RUN: simulating 'certbot renew' close to cert expiry
+**          (The test certificates below have not been saved.)
+
+Congratulations, all renewals succeeded. The following certs have been renewed:
+  /etc/letsencrypt/live/example.com/fullchain.pem (success)
+** DRY RUN: simulating 'certbot renew' close to cert expiry
+**          (The test certificates above have not been saved.)
+-------------------------------------------------------------------------------
+"""
+    )
+}}
+
+This is useful to make sure everything's in place for automation.
+
+## Hooks
+
+You might have noticed the `Dry run: skipping deploy hook command` line in the output. `certbot` can run commands or scripts at several stages in its lifecycle. You can either add hooks via flags every time you `renew`, or you can offload them to executable scripts in `/etc/letsencrypt/renewal-hooks`.
+
+For this example, all I'd like to do is restart the server process following successful renewals. Assuming we've got a local script capable of that called `server-reboot`, this should add it to `certbot`'s pipeline.
+
+{{
+    shell_session("""\
+$ sudo cp ./server-reboot /var/letsencrypt/renewal-hooks/deploy
+$ sudo chmod +x /var/letsencrypt/renewal-hooks/deploy
+"""
+    )
+}}
+
+### Nginx
+
+{{
+    highlight_block("""\
+#!/bin/bash
+
+nginx -t && systemctl restart nginx
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/var/letsencrypt/renewal-hooks/deploy/server-reboot"
+    )
+}}
+
+### Apache
+
+{{
+    highlight_block("""\
+#!/bin/bash
+
+apachectl -t && systemctl restart apachectl
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/var/letsencrypt/renewal-hooks/deploy/server-reboot"
+    )
+}}
+
+## Scripting a Renewal
+
+The official documentation suggests running an automated renewal task at least twice a day (e.g. [the CentOS instructions](https://certbot.eff.org/#centosrhel7-nginx); scroll down). `certbot` also asks that you run it at a random minute. To make things easier later, let's isolate our renew command:
+
+{{
+    highlight_block("""\
+#!/bin/bash
+
+# Create a temporary file for STDERR
+ERROR_LOG=$(mktemp)
+
+# Renew, ignoring STDOUT and piping STDERR to the temp file
+/usr/bin/certbot renew > /dev/null 2> \"$ERROR_LOG\"
+
+if [[ -s \"$ERROR_LOG\" ]]; then
+    mail -s \"certbot Renewal Issue\" your@email.address < \"$ERROR_LOG\"
+fi
+
+rm -rf \"$ERROR_LOG\"
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/sbin/certbot-renew-everything"
+    )
+}}
+
+{{
+    shell_session("""\
+$ sudo chmod 'u=rwx,go=' /sbin/certbot-renew-everything
+"""
+    )
+}}
+
+Adding extra flags is straightforward. `renew` only exits [with a nonzero code if the renewal failed](https://github.com/certbot/certbot/blob/v0.20.0/docs/using.rst#modifying-the-renewal-configuration-file) (paragraph right above the link), meaning the skipped renewals we saw earlier don't generate any traffic. They do, however, send many things to `STDOUT`, which is enough to trigger `cron`'s mail action. The `quiet` flag suppresses `STDOUT`, so you won't get multiple emails a day letting you know `certbot` did nothing. If you're into that you don't have to use it.
+
+Most of the solutions I've seen for the randomness do some cool stuff with advanced PRNG and then pass the result to `sleep`. There's nothing wrong with `sleep` if [you're pausing tasks that don't actually need to run](http://man7.org/linux/man-pages/man3/sleep.3.html). Anything that kills the thread kills the task.
+
+### `at`
+
+`at` provides a much better solution because, [via `man at`](http://man7.org/linux/man-pages/man1/at.1p.html),
+
+> The `at` utility shall read commands from standard input and group them together as an `at-job`, to be executed at a later time.
+
+In other words, `at` is a single-execution `cron`. It manages an `at` queue, most likely accessible via `atq`, which means random power failure or accidentally nuking a remote session won't kill the delayed task. Of course that means some setup is required:
+
+{{
+    shell_session("""\
+$ sudo yum install -y at
+$ sudo pkill -f atd
+$ sudo systemctl enable atd
+$ sudo systemctl start atd
+$ sudo systemctl status atd
+● atd.service - Job spooling tools
+   Loaded: loaded (/usr/lib/systemd/system/atd.service; enabled; vendor preset: enabled)
+   Active: active (running) since Sun 2017-12-17 11:17:15 UTC; 4s ago
+ Main PID: 47 (atd)
+   CGroup: /system.slice/atd.service
+           4747 /usr/sbin/atd -f
+
+Dec 17 11:17:15 examplehost systemd[1]: Started Job spooling tools.
+Dec 17 11:17:15 examplehost systemd[1]: Starting Job spooling tools...
+"""
+    )
+}}
+
+* `at` is the command itself
+* `atd` is the `at` daemon
+* `atq` is an alias for listing `at` jobs
+* `atrm` is an alias for removing `at` jobs
+
+#### Block Scheduling
+
+The simplest `at` solution triggers a script like this `NUMBER_OF_DAILY_RUNS` times per day.
+
+{{
+    highlight_block("""\
+#!/bin/bash
+
+TASK_FILE=/sbin/certbot-renew-everything
+
+# This assumes you've got some control over the machine's at queues
+AT_QUEUE=\"z\"
+
+# The number of times we want the script to run in 24 hours
+NUMBER_OF_DAILY_RUNS=2
+
+# The calculated maximum number of minutes per block
+MAX_MINUTES=$(( 60 * 24 / $NUMBER_OF_DAILY_RUNS ))
+
+# Create 7 pseudorandom bytes, output as hex
+PRN_HEX=$(openssl rand -hex 7)
+# The hex is converted to base 10
+PRN_TEN=$(( 16#$PRN_HEX ))
+# Finally, PRN_TEN is taken mod MAX_MINUTES to fit the domain
+PRN_MIN=$(( $PRN_TEN % $MAX_MINUTES ))
+
+# Only execute if this queue is empty
+if [[ -z \"$( atq -q $AT_QUEUE )\" ]]; then
+    at \"now +${PRN_MIN} min\" -q \"$AT_QUEUE\" -f \"$TASK_FILE\"
+fi
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/sbin/certbot-renew-everything"
+    )
+}}
+
+#### Random Scheduling
+
+A slightly more involved `at` script calls both the task and itself.
+
+{{
+    highlight_block("""\
+#!/bin/bash
+
+# Store original noclobber
+ORIGINAL_NOCLOBBER=$( set +o | grep noclobber )
+set +o noclobber
+
+# Pull out the PRNG into a function
+function openssl_prng {
+    MAX=$1
+    # Create 7 pseudorandom bytes, output as hex
+    PRN_HEX=$(openssl rand -hex 7)
+    # The hex is converted to base 10
+    PRN_TEN=$(( 16#$PRN_HEX ))
+    # Finally, PRN_TEN is taken mod MAX to fit the domain
+    PRN_MIN=$(( $PRN_TEN % $MAX ))
+    return $PRN_MIN
+}
+
+# Path to renew task
+TASK_FILE=/sbin/certbot-renew-everything
+
+# This assumes you've got some control over the machine's at queues
+SCRIPT_QUEUE=\"y\"
+TASK_QUEUE=\"z\"
+
+# A hard cap on run count to account for unpleasant randomness
+ABSOLUTE_RUN_COUNT_MAX=10
+
+# The number of minutes in 24 hours
+MINUTES_IN_TWENTY_FOUR_HOURS=$(( 24 * 60 ))
+
+# When to schedule the next renew run
+TASK_SLEEP_MINS=$( openssl_prng $MINUTES_IN_TWENTY_FOUR_HOURS )
+# Delay scheduling the next self run by an arbitrary amount
+SCRIPT_SLEEP_MINS=$(( $TASK_SLEEP_MINS + 30 ))
+
+# Directory to hold active files
+RUN_DIR=/var/run/certbot-renew
+mkdir -p \"$RUN_DIR\"
+# File to store current date and run count
+RUN_COUNT_FILE=\"$RUN_DIR/count\"
+touch \"$RUN_COUNT_FILE\"
+# Using awk, load the file
+#   * If the dates match, use the loaded run count
+#   * If not, reset the count
+RUN_COUNT=$( awk '{ if ($1 == strftime(\"%F\")) { print $2; } else { print 0; } }' \"$RUN_COUNT_FILE\" )
+
+# Get the absolute path to this file
+RUN_SCRIPT_PATH_FILE=\"$RUN_DIR/path\"
+touch \"$RUN_SCRIPT_PATH_FILE\"
+THIS_SCRIPT=$( [[ -s \"$RUN_SCRIPT_PATH_FILE\" ]] && cat \"$RUN_SCRIPT_PATH_FILE\" || readlink -m $0)
+rm -rf \"$RUN_SCRIPT_PATH_FILE\"
+if [[ -e \"$THIS_SCRIPT\" ]]; then
+    echo \"$THIS_SCRIPT\" >| \"$RUN_SCRIPT_PATH_FILE\"
+else
+    echo \"Unable to find self-reference\" | systemd-cat -t certbot-renew-everything
+    eval \"$ORIGINAL_NOCLOBBER\"
+    exit 1
+fi
+
+# Check that RUN_COUNT is low enough and TASK_QUEUE is empty
+if [[ \"$RUN_COUNT\" -lt \"$ABSOLUTE_RUN_COUNT_MAX\" ]] && [[ -z \"$( atq -q $TASK_QUEUE )\" ]]; then
+    # Increment RUN_COUNT
+    RUN_COUNT=$(( $RUN_COUNT + 1 ))
+    # Schedule a renew and run count update
+    echo \"source $TASK_FILE && (date \\\"+%F $RUN_COUNT\\\" >| $RUN_COUNT_FILE)\" | at \"now +${TASK_SLEEP_MINS} min\" -q \"$TASK_QUEUE\"
+fi
+
+# Check that SCRIPT_QUEUE is empty
+if [[ -z \"$( atq -q $SCRIPT_QUEUE )\" ]]; then
+    # Schedule a new self run
+    at \"now +${SCRIPT_SLEEP_MINS} min\" -q \"$SCRIPT_QUEUE\" -f \"$THIS_SCRIPT\"
+fi
+
+# Revert to original noclobber
+eval \"$ORIGINAL_NOCLOBBER\"
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/sbin/at-random-renewal"
+    )
+}}
+
+## Scheduling the Renewal
+
+With or without `at`, you've got to ensure the task is actually being run.
+
+### `cron`
+
+{{
+    shell_session("""\
+$ sudo crontab -e
+"""
+    )
+}}
+
+{{
+    highlight_block("""\
+# Add a `MAILTO` that looks like this:
+MAILTO=your@email.address
+# Add one of the following, depending on how you set it up:
+0 0,12 * * * /full/path/to/certbot renew --quiet
+# or
+0 0,12 * * * /sbin/certbot-renew-everything
+# or
+0 0,12 * * * /sbin/at-random-renewal
+
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "crontab -e"
+    )
+}}
+
+If you're not changing the time in the script itself, you probably don't want to use `0 0,12`. This launches the task at `00:00` and `12:00` every day. If launching means `at` assigns a random time, or checks to see if it's running, those times aren't a problem. If you're actually hitting Let's Encrypt every day at that time, that's not a great idea.
+
+### `systemd`
+
+(Note: my `systemd` knowledge is still pretty rudimentary. I'm using to userspace `cron`. If you see anything I can improve, I'd love to know about it!)
+
+We're going to define a [oneshot unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=) ([example #2](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Examples)):
+
+{{
+    highlight_block("""\
+[Unit]
+Description=Attempts to renew all certbot certs
+
+[Service]
+Type=oneshot
+ExecStart=/full/path/to/at/runner
+# ExecStart=/sbin/certbot-renew-everything
+# ExecStart=/full/path/to/certbot renew --quiet
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/etc/systemd/system/certbot-renew.service"
+    )
+}}
+
+{{
+    shell_session("""\
+$ sudo chmod 'ugo=r,u+w' /etc/systemd/system/certbot-renew.service
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable certbot-renew.service
+$ sudo systemctl start certbot-renew.service
+$ sudo systemctl status certbot-renew.service
+
+● certbot-renew.service - Attempts to renew all certbot certs
+   Loaded: loaded (/etc/systemd/system/certbot-renew.service; static; vendor preset: disabled)
+   Active: inactive (dead)
+
+Dec 17 14:50:31 wizardsoftheweb1 systemd[1]: Starting Attempts to renew all certbot certs...
+Dec 17 14:50:31 wizardsoftheweb1 systemd[1]: Started Attempts to renew all certbot certs.
+"""
+    )
+}}
+
+To run it regularly, we also create [a timer](https://www.freedesktop.org/software/systemd/man/systemd.timer.html):
+{{
+    highlight_block("""\
+[Unit]
+Description=Run certbot-renew.service every day at 00:00 and 12:00
+
+[Timer]
+OnCalendar=*-*-* 00/12:00
+Unit=certbot-renew.service
+""",
+        explicit_lexer_name = 'BashLexer',
+        title = "/etc/systemd/system/certbot-renew.timer"
+    )
+}}
+
+{{
+    shell_session("""\
+$ sudo chmod 'ugo=r,u+w' /etc/systemd/system/certbot-renew.service
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable certbot-renew.service
+$ sudo systemctl start certbot-renew.service
+$ sudo systemctl status certbot-renew.service
+
+● certbot-renew.service - Attempts to renew all certbot certs
+   Loaded: loaded (/etc/systemd/system/certbot-renew.service; static; vendor preset: disabled)
+   Active: inactive (dead)
+
+Dec 17 14:50:31 wizardsoftheweb1 systemd[1]: Starting Attempts to renew all certbot certs...
+Dec 17 14:50:31 wizardsoftheweb1 systemd[1]: Started Attempts to renew all certbot certs.
+
+$ sudo chmod 'ugo=r,u+w' /etc/systemd/system/certbot-renew.timer
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable certbot-renew.timer
+$ sudo systemctl start certbot-renew.timer
+$ sudo systemctl status certbot-renew.timer
+
+● certbot-renew.timer - Run certbot-renew.service every day at 00:00 and 12:00.
+   Loaded: loaded (/etc/systemd/system/certbot-renew.timer; static; vendor preset: disabled)
+   Active: active (waiting) since Sun 2017-12-17 15:03:21 UTC; 4min 3s ago
+
+Dec 17 15:03:21 wizardsoftheweb1 systemd[1]: Started Run certbot-renew.service every day at 00:00 and 12:00.
+Dec 17 15:03:21 wizardsoftheweb1 systemd[1]: Starting Run certbot-renew.service every day at 00:00 and 12:00.
+
+$ sudo systemctl list-timers certbot*
+
+NEXT                         LEFT    LAST PASSED UNIT                ACTIVATES
+Mon 2017-12-18 00:00:00 UTC  8h left n/a  n/a    certbot-renew.timer certbot-renew.service
+
+1 timers listed.
+Pass --all to see loaded but inactive timers, too.
+"""
+    )
+}}
+{% endblock %}
