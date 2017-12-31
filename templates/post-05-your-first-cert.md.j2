@@ -6,6 +6,46 @@ This post wraps up (most of) the server config and puts it to use. It covers my 
 {% endblock %}
 {% block content %}
 
+I'll be using [Mozilla's config generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/) again for simplicity.
+
+## Prepare the Site
+
+Let's assume we start with examples like these:
+
+### Nginx
+
+{{
+    highlight_block("""\
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server ipv6only=on;
+
+    server_name example.com www.example.com;
+
+    root /srv/www/example.com;
+}
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+Append `; preload` if [you're on the list](https://hstspreload.org/);
+
+{{
+    highlight_block("""\
+Listen 80
+<VirtualHost *:80>
+    DocumentRoot "/srv/www/example.com"
+    ServerName example.com www.example.com
+</VirtualHost>
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
 
 {% endblock %}
 {#
