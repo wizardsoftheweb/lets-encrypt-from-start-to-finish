@@ -166,20 +166,9 @@ server {
     )
 }}
 
-```
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server ipv6only=on;
-
-    server_name example.com www.example.com;
-
-    include /etc/nginx/common/letsencrypt.conf;
-
-    root /srv/www/example.com;
-}
-```
 We can replace it with something like this:
-```
+{{
+    highlight_block("""\
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -207,8 +196,11 @@ server {
 
     root /srv/www/example.com;
 }
-```
-
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        title = "/etc/nginx/conf.d/example.com.conf"
+    )
+}}
 
 {% endblock %}
 {#
