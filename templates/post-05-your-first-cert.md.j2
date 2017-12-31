@@ -260,7 +260,7 @@ As before, I haven't tested the Apache config. At all. It might fail spectatular
 
 {{
     shell_session("""\
-$ sudo nginx -t && sudo systemctl restart nginx || echo "whoops"
+$ sudo nginx -t && sudo systemctl restart nginx || echo \"whoops\"
 """
     )
 }}
@@ -269,25 +269,17 @@ $ sudo nginx -t && sudo systemctl restart nginx || echo "whoops"
 
 {{
     shell_session("""\
-$ sudo httpd -t && sudo systemctl restart httpd || echo "whoops"
+$ sudo httpd -t && sudo systemctl restart httpd || echo \"whoops\"
 """
     )
 }}
-
-{% endblock %}
-{#
-
-
-
-
-
-
 
 ## Testing with OpenSSL
 
 You can quickly verify your settings with `openssl`. If there are any errors and you just restarted the server process, wait a few minutes and try again. The OCSP stapling especially takes more than a few seconds to propagate.
 
-```bash
+{{
+    shell_session("""\
 $ openssl s_client              \
     -connect example.com:443    \
     -servername example.com     \
@@ -329,11 +321,14 @@ SSL-Session:
     Cipher    : ECDHE-RSA-AES256-GCM-SHA384
     ...
 ---
-```
+"""
+    )
+}}
 
 To make sure your content is coming through as intended, you can make [actual HTTP request](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html). I've illustrated below with my website. Note that there are two newlines to finish the request.
 
-```bash
+{{
+    shell_session("""\
 $ openssl s_client -connect wizardsoftheweb.pro:443 -servername wizardsoftheweb.pro -tls1_2 -status -quiet
 depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
 verify return:1
@@ -358,11 +353,14 @@ Accept-Ranges: bytes
 
 <!DOCTYPE html>
 ...
-```
+"""
+    )
+}}
 
 Along those lines, we can also test the redirect.
 
-```bash
+{{
+    shell_session("""\
 $ telnet wizardsoftheweb.pro 80
 Trying 198.199.79.185...
 Connected to wizardsoftheweb.pro.
@@ -380,9 +378,13 @@ Location: https://www.wizardsoftheweb.pro/
 
 <html>
 <head><title>301 Moved Permanently</title></head>
-<body bgcolor="white">
+<body bgcolor=\"white\">
 <center><h1>301 Moved Permanently</h1></center>
 <hr><center>nginx/1.10.2</center>
 </body>
 </html>
-``` #}
+"""
+    )
+}}
+
+{% endblock %}
