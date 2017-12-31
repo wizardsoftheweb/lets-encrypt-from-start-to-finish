@@ -1,0 +1,299 @@
+{% extends 'base.md.j2' %}
+{% block lead_paragraph %}
+
+This post wraps up (most of) the server config and puts it to use. It covers my approach to generating a cert, and provides some useful `openssl` commands for verification. Most of the work here is simply shuffling files around.
+
+{% endblock %}
+{% block content %}
+
+
+{% endblock %}
+{#
+
+
+#### Providing the User Challenge Access
+
+The reason we built the group and external folder previously was so that it would be easy to access later. Simply add the website user to the `letsencrypt` group.
+
+```bash
+$ sudo usermod -G letsencrypt nginx
+# or, if you're being careful
+$ sudo usermod -G letsencrypt siteserviceaccount
+```
+
+#### Include the Challenge Config
+
+###### Nginx
+
+```
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server ipv6only=on;
+
+    server_name example.com www.example.com;
+
+    include /etc/nginx/common/letsencrypt.conf;
+
+    root /srv/www/example.com;
+}
+```
+
+###### Apache
+
+```
+Listen 80
+<VirtualHost *:80>
+    DocumentRoot "/srv/www/example.com"
+    ServerName example.com www.example.com
+    Include /etc/httpd/common/letsencrypt.conf
+</VirtualHost>
+```
+
+### Generate the Cert
+
+With everything in place, we can finally create a cert. All of this manual configuration was done to give us some flexibility over the final product. We're going to pass `certbot` a ton of options to handle this
+
+* We only want a cert, not an installation
+* We're going to agree to [the TOS](https://letsencrypt.org/repository/)
+* We're going to register an email for important contacts
+* We're going to skip joining [the EFF email list](https://www.eff.org/effector)
+* We're going to specify the webroot (i.e. the directory to place the challenges)
+* We're going to specify all the domains AND subdomains on the cert
+
+```bash
+$ certbot                       \
+    certonly                    \
+    --agree-tos                 \
+    --email your@email.address  \
+    --no-eff-email              \
+    -w /srv/www/letsencrypt     \
+    -d example.com              \
+    -d www.example.com          \
+    -d anotherone.example.com
+```
+
+Depending on how things ran, you might have an issue or two to fix. If it worked, you'll get a confirmation notice.
+
+You can verify the files were properly created by checking the Let's Encrypt directory.
+
+```bash
+$ cat /etc/letsencrypt/live/example.com/README
+This directory contains your keys and certificates.
+
+`privkey.pem`  : the private key for your certificate.
+`fullchain.pem`: the certificate file used in most server software.
+`chain.pem`    : used for OCSP stapling in Nginx >=1.3.7.
+`cert.pem`     : will break many server configurations, and should not be used
+                 without reading further documentation (see link below).
+
+We recommend not moving these files. For more information, see the Certbot
+User Guide at https://certbot.eff.org/docs/using.html#where-are-my-certificates.
+```
+
+### Wiring up the Cert
+
+#### Nginx
+
+We paused with a config like this:
+
+```
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server ipv6only=on;
+
+    server_name example.com www.example.com;
+
+    include /etc/nginx/common/letsencrypt.conf;
+
+    root /srv/www/example.com;
+}
+```
+We can replace it with something like this:
+```
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name example.com www.example.com;
+
+    include /etc/nginx/common/letsencrypt.conf;
+
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+
+    server_name example.com www.example.com;
+
+    include /etc/nginx/common/ssl.conf;
+
+    # Normal cert
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    # Private key
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    # OCSP stapling cert
+    ssl_trusted_certificate /etc/letsencrypt/live/example.com/chain.pem;
+
+    root /srv/www/example.com;
+}
+```
+
+#### Apache
+
+We paused with a config like this:
+
+```
+Listen 80
+<VirtualHost *:80>
+    DocumentRoot "/srv/www/example.com"
+    ServerName example.com www.example.com
+    Include /etc/httpd/common/letsencrypt.conf
+</VirtualHost>
+```
+We can replace it with something like this:
+```
+Listen 80
+Listen 443
+<VirtualHost *:80>
+    DocumentRoot "/srv/www/example.com"
+    ServerName example.com www.example.com
+    Include /etc/httpd/common/letsencrypt.conf
+    # https://serverfault.com/a/739128/446829
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteCond %{REQUEST_URI} !^/\.well\-known/acme\-challenge/
+    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</VirtualHost>
+<VirtualHost *:443>
+    DocumentRoot "/srv/www/example.com"
+    ServerName example.com www.example.com
+
+    # Include scoped config
+
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/example.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/example.com/privkey.pem
+</VirtualHost>
+# Include global config
+```
+
+As before, I haven't tested the Apache config. At all. It might fail spectatularly.
+
+### Restart the Server
+
+#### Nginx
+
+```bash
+$ sudo nginx -t && sudo systemctl restart nginx || echo "whoops"
+```
+
+#### Apache
+
+```bash
+$ sudo httpd -t && sudo systemctl restart httpd || echo "whoops"
+```
+
+## Testing with OpenSSL
+
+You can quickly verify your settings with `openssl`. If there are any errors and you just restarted the server process, wait a few minutes and try again. The OCSP stapling especially takes more than a few seconds to propagate.
+
+```bash
+$ openssl s_client              \
+    -connect example.com:443    \
+    -servername example.com     \
+    -tls1_2                     \
+    -status
+
+CONNECTED(00000003)
+depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
+verify return:1
+depth=1 C = US, O = Let's Encrypt, CN = Let's Encrypt Authority X3
+verify return:1
+depth=0 CN = example.com
+verify return:1
+OCSP response:
+======================================
+OCSP Response Data:
+    OCSP Response Status: successful (0x0)
+    Response Type: Basic OCSP Response
+    Version: 1 (0x0)
+    Responder Id: C = US, O = Let's Encrypt, CN = Let's Encrypt Authority X3
+    ...
+======================================
+---
+Certificate chain
+ 0 s:/CN=example.com
+   i:/C=US/O=Let's Encrypt/CN=Let's Encrypt Authority X3
+ 1 s:/C=US/O=Let's Encrypt/CN=Let's Encrypt Authority X3
+   i:/O=Digital Signature Trust Co./CN=DST Root CA X3
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+subject=/CN=example.com
+issuer=/C=US/O=Let's Encrypt/CN=Let's Encrypt Authority X3
+...
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES256-GCM-SHA384
+    ...
+---
+```
+
+To make sure your content is coming through as intended, you can make [actual HTTP request](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html). I've illustrated below with my website. Note that there are two newlines to finish the request.
+
+```bash
+$ openssl s_client -connect wizardsoftheweb.pro:443 -servername wizardsoftheweb.pro -tls1_2 -status -quiet
+depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
+verify return:1
+depth=1 C = US, O = Let's Encrypt, CN = Let's Encrypt Authority X3
+verify return:1
+depth=0 CN = wizardsoftheweb.pro
+verify return:1
+GET / HTTP/1.1
+HOST: wizardsoftheweb.pro
+
+HTTP/1.1 200 OK
+Server: nginx/1.10.2
+Date: Sun, 17 Dec 2017 03:04:46 GMT
+Content-Type: text/html
+Content-Length: 722
+Last-Modified: Sun, 28 May 2017 11:02:56 GMT
+Connection: keep-alive
+Strict-Transport-Security: max-age=63072000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Accept-Ranges: bytes
+
+<!DOCTYPE html>
+...
+```
+
+Along those lines, we can also test the redirect.
+
+```bash
+$ telnet wizardsoftheweb.pro 80
+Trying 198.199.79.185...
+Connected to wizardsoftheweb.pro.
+Escape character is '^]'.
+GET / HTTP/1.1
+HOST: wizardsoftheweb.pro
+
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.10.2
+Date: Sun, 17 Dec 2017 03:12:55 GMT
+Content-Type: text/html
+Content-Length: 185
+Connection: keep-alive
+Location: https://www.wizardsoftheweb.pro/
+
+<html>
+<head><title>301 Moved Permanently</title></head>
+<body bgcolor="white">
+<center><h1>301 Moved Permanently</h1></center>
+<hr><center>nginx/1.10.2</center>
+</body>
+</html>
+``` #}
