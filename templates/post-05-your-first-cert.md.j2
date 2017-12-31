@@ -245,16 +245,34 @@ Listen 443
     SSLCertificateFile /etc/letsencrypt/live/example.com/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/example.com/privkey.pem
 </VirtualHost>
+# Include global config
 """,
         explicit_lexer_name = 'ApacheConfLexer',
         title = "/etc/httpd/vhosts.d/example.com.conf"
     )
 }}
 
-# Include global config
-```
-
 As before, I haven't tested the Apache config. At all. It might fail spectatularly.
+
+## Restart the Server
+
+### Nginx
+
+{{
+    shell_session("""\
+$ sudo nginx -t && sudo systemctl restart nginx || echo "whoops"
+"""
+    )
+}}
+
+### Apache
+
+{{
+    shell_session("""\
+$ sudo httpd -t && sudo systemctl restart httpd || echo "whoops"
+"""
+    )
+}}
 
 {% endblock %}
 {#
@@ -263,19 +281,7 @@ As before, I haven't tested the Apache config. At all. It might fail spectatular
 
 
 
-### Restart the Server
 
-#### Nginx
-
-```bash
-$ sudo nginx -t && sudo systemctl restart nginx || echo "whoops"
-```
-
-#### Apache
-
-```bash
-$ sudo httpd -t && sudo systemctl restart httpd || echo "whoops"
-```
 
 ## Testing with OpenSSL
 
