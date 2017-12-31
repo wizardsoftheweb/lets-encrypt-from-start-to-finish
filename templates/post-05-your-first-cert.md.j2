@@ -32,8 +32,6 @@ server {
 
 ### Apache
 
-Append `; preload` if [you're on the list](https://hstspreload.org/);
-
 {{
     highlight_block("""\
 Listen 80
@@ -47,25 +45,25 @@ Listen 80
     )
 }}
 
-{% endblock %}
-{#
-
-
-#### Providing the User Challenge Access
+## Providing the User Challenge Access
 
 The reason we built the group and external folder previously was so that it would be easy to access later. Simply add the website user to the `letsencrypt` group.
 
-```bash
+{{
+    shell_session("""\
 $ sudo usermod -G letsencrypt nginx
 # or, if you're being careful
 $ sudo usermod -G letsencrypt siteserviceaccount
-```
+"""
+    )
+}}
 
-#### Include the Challenge Config
+## Include the Challenge Config
 
-###### Nginx
+### Nginx
 
-```
+{{
+    highlight_block("""\
 server {
     listen 80 default_server;
     listen [::]:80 default_server ipv6only=on;
@@ -76,18 +74,33 @@ server {
 
     root /srv/www/example.com;
 }
-```
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
 
-###### Apache
+### Apache
 
-```
+{{
+    highlight_block("""\
 Listen 80
 <VirtualHost *:80>
     DocumentRoot "/srv/www/example.com"
     ServerName example.com www.example.com
     Include /etc/httpd/common/letsencrypt.conf
 </VirtualHost>
-```
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+{% endblock %}
+{#
+
+
+
 
 ### Generate the Cert
 
