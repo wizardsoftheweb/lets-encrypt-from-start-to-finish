@@ -10,10 +10,9 @@ This post looks a collection of useful security headers. I've tried to explain w
 
 Originally, this post was sourced from a collection of personal experience and interesting sources found during writing. However, once I split this post out, I wanted to find some best practices (my code, while certainly practice, isn't necessarily the best). The [Open Web Application Security Project](https://www.owasp.org/index.php/Main_Page) maintains [a list of useful headers](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project#tab=Headers), which should all be covered here.
 
-## Caveats
+## Caveat
 
-* **EVERYTHING HERE CAN BE SIDESTEPPED**. Headers are sent [with a request/response](https://tools.ietf.org/html/rfc7540#section-8.1.2), which means they can be completely ignored. Headers do not prevent bad actors from doing malicious things. They do, however, force average users to do things as expected, which usually prevents bad actors from tricking average users into doing malicious things. This is a **very** important distinction.
-* I didn't include [HTTP Public Key Pinning](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning) because it's pretty easy to screw up. As Let's Encrypt certs aren't necessarily as stable as commercial alternatives (i.e. may change more frequently without manual intervention), I want to do more research on this.
+**EVERYTHING HERE CAN BE SIDESTEPPED**. Headers are sent [with a request/response](https://tools.ietf.org/html/rfc7540#section-8.1.2), which means they can be completely ignored. Headers do not prevent bad actors from doing malicious things. They do, however, force average users to do things as expected, which usually prevents bad actors from tricking average users into doing malicious things. This is a **very** important distinction.
 
 ## Primary Header Config
 
@@ -179,6 +178,15 @@ object-src: 'none';
     )
 }}
 
+### Frames
+
+CSPs provide two directives that are useful for frames: `sandbox` and `frame-ancestors`. The first adds extra security when serving explicitly embedded content; the second adds extra security to all content.
+
+I actually couldn't find any good examples of a CSP `sandbox` policy. All of the sources I found looked [like the MDN CSP `sandbox` page](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/sandbox), with a note about how the CSP `sandbox` mimics [the `iframe` `sandbox` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox) and a list of possible values. Without usage examples, my assumption is that it exists to provide an extra layer of `sandbox` security. Anyone can strip the `sandbox` tag from an `iframe` or change its values; by setting it in the header itself you can limit the options available to external consumers.
+
+#### I Made This
+
+I was trying to figure out how everything worked together, so I built [a small tool to play with everything together](https://csp.wizardsoftheweb.pro/). It's really interesting stuff, especially if you do the ad thing. I also [split off everything you need to ruin CSP](https://github.com/wizardsoftheweb/express-csp-demo) for a quick reference. You should just be able to clone and go.
 
 ## Prevent Clickjacking (Historical)
 
@@ -192,7 +200,7 @@ The majority of websites don't want to be embedded and should probably use `deny
 
 {{
     highlight_block("""\
-add_header X-Frame-Options deny;
+add_header X-Frame-Options \"deny\";
 """,
         explicit_lexer_name = 'NginxConfLexer',
         no_header = True
@@ -210,13 +218,81 @@ Header always set X-Frame-Options \"deny\"
     )
 }}
 
-## Primary Header Config Redux
+## Cross-Site Scripting
+
+XSS is a pretty neat little industry. I know a couple of guys that are still collecting income on exploits they found years ago. Creating exploits requires a lot of ingenuity and even more time.
+
+Which means you should go out of your way to prevent it. No matter how clever you think you are, there's always someone smarter. More importantly, there's always a fresh cadre of new script kiddies that do things you've never thought of. As your codebase ages, [low-hanging fruit like XSS headers](https://www.veracode.com/blog/2014/03/guidelines-for-setting-security-headers) are more useful than you might think.
 
 ### Nginx
 
 {{
     highlight_block("""\
-# Initially empty
+add_header X-XSS-Protection \"1; mode=block\";
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+{{
+    highlight_block("""\
+Header always set X-XSS-Protection \"1; mode=block\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Content Sniffing
+
+[Multipurpose Internet Mail Extension types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types) are really easy to pass around. They're fast to use and there are so many of them. However, they're equally easy to take advantage of.
+
+### Nginx
+
+{{
+    highlight_block("""\
+add_header X-Content-Type-Options \"nosniff\";
+""",
+        explicit_lexer_name = 'NginxConfLexer',
+        no_header = True
+    )
+}}
+
+### Apache
+
+{{
+    highlight_block("""\
+Header always set X-Content-Type-Options \"nosniff\"
+""",
+        explicit_lexer_name = 'ApacheConfLexer',
+        no_header = True
+    )
+}}
+
+## Referer
+
+This is [one of my favorite computer obstinacies](https://en.wikipedia.org/wiki/HTTP_referer#Etymology), close to [`\t` in Makefiles](https://stackoverflow.com/a/1765566/2877698). Typos aside, messing with the Referer header is both great and bad:
+
+1. You should try to protect the privacy of your users as much as possible. You don't need to know where they came from and you don't need to tell anyone else when they leave.
+2. Most of the internet works off the Referer header now. I've tried at various stages to get away from it without any luck. I might not want everything I do bought and sold by data firms and ad shops, but they don't really care and it's not going away any time soon.
+
+You [can beef up the Referer](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy) if you'd like, but you should do some serious testing on your apps first to make sure you won't be shooting yourself in the foot.
+
+## Primary Header Config Redux
+
+I've left out things that could be problematic everywhere. You might need to consider tweaking `X-Frame-Options` if your content gets embedded.
+
+### Nginx
+
+{{
+    highlight_block("""\
+add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains\";
+add_header X-Frame-Options \"deny\";
+add_header X-XSS-Protection \"1; mode=block\";
+add_header X-Content-Type-Options \"nosniff\";
 """,
         explicit_lexer_name = 'NginxConfLexer',
         title = '/etc/nginx/common/ssl-headers.conf'
@@ -230,11 +306,23 @@ For the `n`th time, I'd like to reiterate that I haven't actually tested this co
 
 {{
     highlight_block("""\
-# Initially empty
+Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomains\"
+Header always set X-Frame-Options \"deny\"
+Header always set X-XSS-Protection \"1; mode=block\"
+Header always set X-Content-Type-Options \"nosniff\"
 """,
         explicit_lexer_name = 'ApacheConfLexer',
         title = '/etc/httpd/common/ssl-headers.conf'
     )
 }}
 
+## But What About...
+
+### Public Key Pinning
+
+I didn't include [HTTP Public Key Pinning](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning) because it's pretty easy to screw up. As Let's Encrypt certs aren't necessarily as stable as commercial alternatives (i.e. may change more frequently without manual intervention), I want to do more research on this.
+
+### Cross-Domain Policies
+
+I spent thirty minutes trying to come up with a good reason [for a `crossdomain.xml` policy](https://www.perpetual-beta.org/weblog/security-headers.html#rule-8470-2-establish-a-cross-domain-meta-policy). If you're not doing anything big with Flash or PDFs, I just don't see why you'd bother, especially with a good CSP. Personally, I'd recommend either `none` or `master-only` if you need a policy at all.
 {% endblock %}
